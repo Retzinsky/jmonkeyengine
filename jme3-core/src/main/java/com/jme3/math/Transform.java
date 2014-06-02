@@ -37,7 +37,7 @@ import java.io.IOException;
 /**
  * Started Date: Jul 16, 2004<br><br>
  * Represents a translation, rotation and scale in one object.
- * 
+ *
  * @author Jack Lindamood
  * @author Joshua Slack
  */
@@ -55,7 +55,7 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
         this.translation.set(translation);
         this.rot.set(rot);
     }
-    
+
     public Transform(Vector3f translation, Quaternion rot, Vector3f scale){
         this(translation, rot);
         this.scale.set(scale);
@@ -152,15 +152,15 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
         quat.set(rot);
         return quat;
     }
-    
+
     /**
      * Return the rotation quaternion in this matrix.
      * @return rotation quaternion.
      */
     public Quaternion getRotation() {
         return rot;
-    } 
-    
+    }
+
     /**
      * Stores this scale value into the given vector3f.  If scale is null, a new vector3f is created to
      * hold the value.  The value, once stored, is returned.
@@ -219,6 +219,39 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
      */
     public Transform setTranslation(float x,float y, float z) {
         translation.set(x,y,z);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's x translation to the given value,
+     * retaining the original y and z values.
+     * @param x This matrix's new x translation.
+     * @return this
+     */
+    public Transform setTranslationX(float x) {
+        translation.setX(x);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's y translation to the given value,
+     * retaining the original x and z values.
+     * @param y This matrix's new y translation.
+     * @return this
+     */
+    public Transform setTranslationY(float y) {
+        translation.setY(y);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's z translation to the given value,
+     * retaining the original x and y values.
+     * @param z This matrix's new z translation.
+     * @return this
+     */
+    public Transform setTranslationZ(float z) {
+        translation.setZ(z);
         return this;
     }
 
@@ -296,12 +329,12 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
 
     public void read(JmeImporter e) throws IOException {
         InputCapsule capsule = e.getCapsule(this);
-        
+
         rot = (Quaternion)capsule.readSavable("rot", new Quaternion());
         translation = (Vector3f)capsule.readSavable("translation", Vector3f.ZERO);
         scale = (Vector3f)capsule.readSavable("scale", Vector3f.UNIT_XYZ);
     }
-    
+
     @Override
     public Transform clone() {
         try {
