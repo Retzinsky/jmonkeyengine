@@ -195,7 +195,8 @@ public class Camera implements Savable, Cloneable {
      * store the value for field parallelProjection
      */
     private boolean parallelProjection = true;
-    protected Matrix4f projectionMatrixOverride;
+    protected Matrix4f projectionMatrixOverride = new Matrix4f();
+    private boolean overrideProjection;
     protected Matrix4f viewMatrix = new Matrix4f();
     protected Matrix4f projectionMatrix = new Matrix4f();
     protected Matrix4f viewProjectionMatrix = new Matrix4f();
@@ -328,15 +329,9 @@ public class Camera implements Savable, Cloneable {
         }
         
         this.parallelProjection = cam.parallelProjection;
-        if (cam.projectionMatrixOverride != null) {
-            if (this.projectionMatrixOverride == null) {
-                this.projectionMatrixOverride = cam.projectionMatrixOverride.clone();
-            } else {
-                this.projectionMatrixOverride.set(cam.projectionMatrixOverride);
-            }
-        } else {
-            this.projectionMatrixOverride = null;
-        }
+        this.overrideProjection = cam.overrideProjection;
+        this.projectionMatrixOverride.set(cam.projectionMatrixOverride);
+        
         this.viewMatrix.set(cam.viewMatrix);
         this.projectionMatrix.set(cam.projectionMatrix);
         this.viewProjectionMatrix.set(cam.viewProjectionMatrix);
@@ -392,30 +387,36 @@ public class Camera implements Savable, Cloneable {
         if (clipPlane.whichSide(location) == side) {
             return;
         }
-        Matrix4f p = projectionMatrix.clone();
+        
+        TempVars vars = TempVars.get();
+        try {        
+            Matrix4f p = projectionMatrixOverride.set(projectionMatrix);
 
-        Matrix4f ivm = viewMatrix.clone();
+            Matrix4f ivm = viewMatrix;
 
-        Vector3f point = clipPlane.getNormal().mult(clipPlane.getConstant());
-        Vector3f pp = ivm.mult(point);
-        Vector3f pn = ivm.multNormal(clipPlane.getNormal(), null);
-        Vector4f clipPlaneV = new Vector4f(pn.x * sideFactor, pn.y * sideFactor, pn.z * sideFactor, -(pp.dot(pn)) * sideFactor);
-
-        Vector4f v = new Vector4f(0, 0, 0, 0);
-
-        v.x = (Math.signum(clipPlaneV.x) + p.m02) / p.m00;
-        v.y = (Math.signum(clipPlaneV.y) + p.m12) / p.m11;
-        v.z = -1.0f;
-        v.w = (1.0f + p.m22) / p.m23;
-
-        float dot = clipPlaneV.dot(v);//clipPlaneV.x * v.x + clipPlaneV.y * v.y + clipPlaneV.z * v.z + clipPlaneV.w * v.w;
-        Vector4f c = clipPlaneV.mult(2.0f / dot);
-
-        p.m20 = c.x - p.m30;
-        p.m21 = c.y - p.m31;
-        p.m22 = c.z - p.m32;
-        p.m23 = c.w - p.m33;
-        setProjectionMatrix(p);
+            Vector3f point = clipPlane.getNormal().mult(clipPlane.getConstant(), vars.vect1);
+            Vector3f pp = ivm.mult(point, vars.vect2);
+            Vector3f pn = ivm.multNormal(clipPlane.getNormal(), vars.vect3);
+            Vector4f clipPlaneV = vars.vect4f1.set(pn.x * sideFactor, pn.y * sideFactor, pn.z * sideFactor, -(pp.dot(pn)) * sideFactor);
+    
+            Vector4f v = vars.vect4f2.set(0, 0, 0, 0);
+    
+            v.x = (Math.signum(clipPlaneV.x) + p.m02) / p.m00;
+            v.y = (Math.signum(clipPlaneV.y) + p.m12) / p.m11;
+            v.z = -1.0f;
+            v.w = (1.0f + p.m22) / p.m23;
+    
+            float dot = clipPlaneV.dot(v);//clipPlaneV.x * v.x + clipPlaneV.y * v.y + clipPlaneV.z * v.z + clipPlaneV.w * v.w;
+            Vector4f c = clipPlaneV.multLocal(2.0f / dot);
+    
+            p.m20 = c.x - p.m30;
+            p.m21 = c.y - p.m31;
+            p.m22 = c.z - p.m32;
+            p.m23 = c.w - p.m33;
+            setProjectionMatrix(p);
+        } finally {
+            vars.release();
+        }            
     }
 
     /**
@@ -1085,7 +1086,13 @@ public class Camera implements Savable, Cloneable {
      * @param projMatrix
      */
     public void setProjectionMatrix(Matrix4f projMatrix) {
-        projectionMatrixOverride = projMatrix;
+        if (projMatrix == null) {
+            overrideProjection = false;
+            projectionMatrixOverride.loadIdentity();   
+        } else {
+            overrideProjection = true;            
+            projectionMatrixOverride.set(projMatrix);
+        }            
         updateViewProjection();
     }
 
@@ -1096,7 +1103,7 @@ public class Camera implements Savable, Cloneable {
      * of the camera.
      */
     public Matrix4f getProjectionMatrix() {
-        if (projectionMatrixOverride != null) {
+        if (overrideProjection) {
             return projectionMatrixOverride;
         }
 
@@ -1107,7 +1114,7 @@ public class Camera implements Savable, Cloneable {
      * Updates the view projection matrix.
      */
     public void updateViewProjection() {
-        if (projectionMatrixOverride != null) {
+        if (overrideProjection) {
             viewProjectionMatrix.set(projectionMatrixOverride).multLocal(viewMatrix);
         } else {
             //viewProjectionMatrix.set(viewMatrix).multLocal(projectionMatrix);
