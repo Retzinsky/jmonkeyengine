@@ -57,13 +57,6 @@ public final class AppSettings extends HashMap<String, Object> {
     private static final AppSettings defaults = new AppSettings(false);
 
     /**
-     * Use LWJGL as the display system and force using the OpenGL1.1 renderer.
-     *
-     * @see AppSettings#setRenderer(java.lang.String)
-     */
-    public static final String LWJGL_OPENGL1 = "LWJGL-OPENGL1";
-
-    /**
      * Use LWJGL as the display system and force using the OpenGL2.0 renderer.
      * <p>
      * If the underlying system does not support OpenGL2.0, then the context
@@ -88,17 +81,6 @@ public final class AppSettings extends HashMap<String, Object> {
     public static final String LWJGL_OPENGL3 = "LWJGL-OpenGL3";
 
     /**
-     * Use LWJGL as the display system and allow the context
-     * to choose an appropriate renderer based on system capabilities.
-     * <p>
-     * If the GPU supports OpenGL2 or later, then the OpenGL2.0 renderer will
-     * be used, otherwise, the OpenGL1.1 renderer is used.
-     *
-     * @see AppSettings#setRenderer(java.lang.String)
-     */
-    public static final String LWJGL_OPENGL_ANY = "LWJGL-OpenGL-Any";
-
-    /**
      * Use the LWJGL OpenAL based renderer for audio capabilities.
      *
      * @see AppSettings#setAudioRenderer(java.lang.String)
@@ -108,16 +90,19 @@ public final class AppSettings extends HashMap<String, Object> {
     /**
      * Use the Android MediaPlayer / SoundPool based renderer for Android audio capabilities.
      * <p>
-     * NOTE: Supports Android 2.2+ platforms.  This is the current default for
-     * Android platforms.
+     * NOTE: Supports Android 2.2+ platforms.
      *
      * @see AppSettings#setAudioRenderer(java.lang.String)
+     * @deprecated This audio renderer has too many limitations.
+     * use {@link #ANDROID_OPENAL_SOFT} instead.
      */
+    @Deprecated
     public static final String ANDROID_MEDIAPLAYER = "MediaPlayer";
 
     /**
      * Use the OpenAL Soft based renderer for Android audio capabilities.
      * <p>
+     * This is the current default for Android platforms.
      * NOTE: Only to be used on Android 2.3+ platforms due to using OpenSL.
      *
      * @see AppSettings#setAudioRenderer(java.lang.String)
@@ -471,6 +456,26 @@ public final class AppSettings extends HashMap<String, Object> {
     }
 
     /**
+     * Enable or disable keyboard emulation on touchscreen based devices.
+     * This will convert soft keyboard key presses on the touchscreen
+     * into the appropriate key events.
+     *
+     * @param emulateKeyboard If soft keyboard emulation should be enabled.
+     */
+    public void setEmulateKeyboard(boolean emulateKeyboard) {
+        putBoolean("TouchEmulateKeyboard", emulateKeyboard);
+    }
+
+    /**
+     * Returns true if keyboard emulation is enabled, false otherwise.
+     *
+     * @return Soft keyboard emulation mode.
+     */
+    public boolean isEmulateKeyboard() {
+        return getBoolean("TouchEmulateKeyboard");
+    }
+
+    /**
      * @param frameRate The frame-rate is the upper limit on how high
      * the application's frames-per-second can go.
      * (Default: -1 no frame rate limit imposed)
@@ -746,12 +751,12 @@ public final class AppSettings extends HashMap<String, Object> {
     public void setSettingsDialogImage(String path) {
         putString("SettingsDialogImage", path);
     }
-    
+
     /**
      * Enables Gamma Correction
-     * This requires that the GPU supports GL_ARB_framebuffer_sRGB and will 
+     * This requires that the GPU supports GL_ARB_framebuffer_sRGB and will
      * disabled otherwise.
-     * @param gammaCorrection 
+     * @param gammaCorrection
      * (Default : true)
      */
     public void setGammaCorrection(boolean gammaCorrection) {
@@ -926,7 +931,7 @@ public final class AppSettings extends HashMap<String, Object> {
     public String getSettingsDialogImage() {
         return getString("SettingsDialogImage");
     }
-    
+
     public boolean getGammaCorrection() {
         return getBoolean("GammaCorrection");
     }

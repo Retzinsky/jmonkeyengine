@@ -31,7 +31,6 @@
  */
 package com.jme3.system.android;
 
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -42,18 +41,16 @@ import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.InputType;
 import android.view.Gravity;
-import android.view.SurfaceHolder;
+import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import com.jme3.input.*;
-import com.jme3.input.android.AndroidInput;
 import com.jme3.input.android.AndroidSensorJoyInput;
 import com.jme3.input.android.AndroidInputHandler;
 import com.jme3.input.controls.SoftTextDialogInputListener;
 import com.jme3.input.dummy.DummyKeyInput;
 import com.jme3.input.dummy.DummyMouseInput;
-import com.jme3.renderer.android.AndroidGLSurfaceView;
 import com.jme3.renderer.android.OGLESShaderRenderer;
 import com.jme3.system.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,13 +75,9 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
     protected SystemListener listener;
     protected boolean autoFlush = true;
     protected AndroidInputHandler androidInput;
-    protected int minFrameDuration = 0;                   // No FPS cap
+    protected long minFrameDuration = 0;                   // No FPS cap
+    protected long lastUpdateTime = 0;
     protected JoyInput androidSensorJoyInput = null;
-    /**
-     * EGL_RENDERABLE_TYPE: EGL_OPENGL_ES_BIT = OpenGL ES 1.0 |
-     * EGL_OPENGL_ES2_BIT = OpenGL ES 2.0
-     */
-    protected int clientOpenGLESVersion = 1;
 
     public OGLESContext() {
     }
@@ -103,12 +96,19 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
      *
      * @return GLSurfaceView The newly created view
      */
-    public AndroidGLSurfaceView createView() {
-        AndroidGLSurfaceView view;
-        int buildVersion = Build.VERSION.SDK_INT;
+    public GLSurfaceView createView(Context context) {
+        // NOTE: We assume all ICS devices have OpenGL ES 2.0.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            // below 4.0, check OpenGL ES 2.0 support.
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            ConfigurationInfo info = am.getDeviceConfigurationInfo();
+            if (info.reqGlEsVersion < 0x20000) {
+                throw new UnsupportedOperationException("OpenGL ES 2.0 is not supported on this device");
+            }
+        }
 
         // Start to set up the view
-        view = new AndroidGLSurfaceView(JmeAndroidSystem.getActivity().getApplication());
+        GLSurfaceView view = new GLSurfaceView(context);
         if (androidInput == null) {
             androidInput = new AndroidInputHandler();
         }
@@ -117,19 +117,10 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
 
         // setEGLContextClientVersion must be set before calling setRenderer
         // this means it cannot be set in AndroidConfigChooser (too late)
-        int rawOpenGLESVersion = getOpenGLESVersion();
-//        logger.log(Level.FINE, "clientOpenGLESVersion {0}.{1}",
-//                new Object[]{clientOpenGLESVersion>>16, clientOpenGLESVersion<<16});
-        if (rawOpenGLESVersion < 0x20000) {
-            throw new UnsupportedOperationException("OpenGL ES 2.0 is not supported on this device");
-        } else {
-            clientOpenGLESVersion = 2;
-            view.setEGLContextClientVersion(clientOpenGLESVersion);
-        }
+        view.setEGLContextClientVersion(2);
 
         view.setFocusableInTouchMode(true);
         view.setFocusable(true);
-        view.getHolder().setType(SurfaceHolder.SURFACE_TYPE_GPU);
 
         // setFormat must be set before AndroidConfigChooser is called by the surfaceview.
         // if setFormat is called after ConfigChooser is called, then execution
@@ -155,28 +146,16 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
         AndroidConfigChooser configChooser = new AndroidConfigChooser(settings);
         view.setEGLConfigChooser(configChooser);
         view.setRenderer(this);
-        
+
         // Attempt to preserve the EGL Context on app pause/resume.
-        // Not destroying and recreating the EGL context 
+        // Not destroying and recreating the EGL context
         // will help with resume time by reusing the existing context to avoid
         // reloading all the OpenGL objects.
-        if (buildVersion >= 11) {
+        if (Build.VERSION.SDK_INT >= 11) {
             view.setPreserveEGLContextOnPause(true);
         }
 
         return view;
-    }
-    /**
-     * Get the  OpenGL ES version
-     * @return version returns the int value of the GLES version
-     */
-    public int getOpenGLESVersion() {
-        ActivityManager am =
-                (ActivityManager) JmeAndroidSystem.getActivity().getApplication().getSystemService(Context.ACTIVITY_SERVICE);
-        ConfigurationInfo info = am.getDeviceConfigurationInfo();
-        logger.log(Level.FINE, "OpenGL Version {0}:", info.getGlEsVersion());
-        return info.reqGlEsVersion;
-//        return (info.reqGlEsVersion >= 0x20000);
     }
 
     // renderer:initialize
@@ -207,7 +186,7 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
             }
         });
 
-        timer = new AndroidTimer();
+        timer = new NanoTimer();
         renderer = new OGLESShaderRenderer();
 
         renderer.initialize();
@@ -247,6 +226,12 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
             androidInput.loadSettings(settings);
         }
 
+        if (settings.getFrameRate() > 0) {
+            minFrameDuration = (long)(1000d / (double)settings.getFrameRate()); // ms
+            logger.log(Level.FINE, "Setting min tpf: {0}ms", minFrameDuration);
+        } else {
+            minFrameDuration = 0;
+        }
     }
 
     @Override
@@ -342,23 +327,25 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
                 throw new IllegalStateException("onDrawFrame without create");
             }
 
-            long milliStart = System.currentTimeMillis();
-
             listener.update();
             if (autoFlush) {
                 renderer.onFrame();
             }
 
-            long milliDelta = System.currentTimeMillis() - milliStart;
+            long updateDelta = System.currentTimeMillis() - lastUpdateTime;
 
             // Enforce a FPS cap
-            if (milliDelta < minFrameDuration) {
-                //logger.log(Level.FINE, "Time per frame {0}", milliDelta);
+            if (updateDelta < minFrameDuration) {
+//                    logger.log(Level.INFO, "lastUpdateTime: {0}, updateDelta: {1}, minTimePerFrame: {2}",
+//                            new Object[]{lastUpdateTime, updateDelta, minTimePerFrame});
                 try {
-                    Thread.sleep(minFrameDuration - milliDelta);
+                    Thread.sleep(minFrameDuration - updateDelta);
                 } catch (InterruptedException e) {
                 }
             }
+
+            lastUpdateTime = System.currentTimeMillis();
+
         }
     }
 
@@ -407,13 +394,13 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
         logger.log(Level.FINE, "requestDialog: title: {0}, initialValue: {1}",
                 new Object[]{title, initialValue});
 
-        final Activity activity = JmeAndroidSystem.getActivity();
-        activity.runOnUiThread(new Runnable() {
+        final View view = JmeAndroidSystem.getView();
+        view.getHandler().post(new Runnable() {
             @Override
             public void run() {
 
-                final FrameLayout layoutTextDialogInput = new FrameLayout(activity);
-                final EditText editTextDialogInput = new EditText(activity);
+                final FrameLayout layoutTextDialogInput = new FrameLayout(view.getContext());
+                final EditText editTextDialogInput = new EditText(view.getContext());
                 editTextDialogInput.setWidth(LayoutParams.FILL_PARENT);
                 editTextDialogInput.setHeight(LayoutParams.FILL_PARENT);
                 editTextDialogInput.setPadding(20, 20, 20, 20);
@@ -444,7 +431,7 @@ public class OGLESContext implements JmeContext, GLSurfaceView.Renderer, SoftTex
 
                 layoutTextDialogInput.addView(editTextDialogInput);
 
-                AlertDialog dialogTextInput = new AlertDialog.Builder(activity).setTitle(title).setView(layoutTextDialogInput).setPositiveButton("OK",
+                AlertDialog dialogTextInput = new AlertDialog.Builder(view.getContext()).setTitle(title).setView(layoutTextDialogInput).setPositiveButton("OK",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
                                 /* User clicked OK, send COMPLETE action

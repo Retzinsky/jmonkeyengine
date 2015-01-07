@@ -78,8 +78,8 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
     protected float minVerticalRotation = 0f;
     protected float horizontalRotation = 0f;
     //protected float distanceLerpFactor = 0;
-    protected Vector3f upVector;
-    protected Vector3f leftVector;
+    protected Vector3f upVector = new Vector3f();
+    protected Vector3f leftVector = new Vector3f();
     protected Trigger[] zoomOutTrigger = {new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true)};
     protected Trigger[] zoomInTrigger = {new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false)};
     protected Trigger[] toggleRotateTrigger = {new MouseButtonTrigger(MouseInput.BUTTON_LEFT), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT)};
@@ -89,6 +89,7 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
 //    protected float rotation = 0;
 //    protected float targetRotation = rotation;
     public ChaseCameraAppState() {
+        camNode = new CameraNode("ChaseCameraNode", new CameraControl());
     }
 
     @Override
@@ -96,7 +97,7 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
         super.initialize(stateManager, app);
         this.inputManager = app.getInputManager();
         target = new Node("ChaseCamTarget");
-        camNode = new CameraNode("ChaseCameraNode", app.getCamera());
+        camNode.setCamera(app.getCamera());        
         camNode.setControlDir(CameraControl.ControlDirection.SpatialToCamera);
         target.attachChild(camNode);
         camNode.setLocalTranslation(0, 0, distance);
@@ -126,6 +127,7 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
         initTogleRotateInput();
 
         inputManager.addListener(this, inputs);
+        inputManager.setCursorVisible(dragToRotate);
     }
 
     public void onAction(String name, boolean keyPressed, float tpf) {
@@ -275,7 +277,9 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
      */
     public void setMaxDistance(float maxDistance) {
         this.maxDistance = maxDistance;
-        zoomCamera(distance);
+        if(initialized){
+            zoomCamera(distance);
+        }
     }
 
     /**
@@ -292,7 +296,9 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
      */
     public void setMinDistance(float minDistance) {
         this.minDistance = minDistance;
-        zoomCamera(distance);
+        if(initialized){
+            zoomCamera(distance);
+        }
     }
 
     /**
@@ -311,7 +317,9 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
      */
     public void setMaxVerticalRotation(float maxVerticalRotation) {
         this.maxVerticalRotation = maxVerticalRotation;
-        rotateCamera();
+        if(initialized){
+            rotateCamera();
+        }
     }
 
     /**
@@ -331,7 +339,9 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
      */
     public void setMinVerticalRotation(float minHeight) {
         this.minVerticalRotation = minHeight;
-        rotateCamera();
+        if(initialized){
+            rotateCamera();
+        }
     }
 
     /**
@@ -420,7 +430,9 @@ public class ChaseCameraAppState extends AbstractAppState implements ActionListe
     public void setDragToRotate(boolean dragToRotate) {
         this.dragToRotate = dragToRotate;
         this.canRotate = !dragToRotate;
-        inputManager.setCursorVisible(dragToRotate);
+        if(inputManager != null){
+            inputManager.setCursorVisible(dragToRotate);
+        }
     }
 
     /**

@@ -2,8 +2,10 @@ package com.jme3.scene.plugins.blender.constraints;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import com.jme3.animation.Bone;
@@ -15,7 +17,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.plugins.blender.AbstractBlenderHelper;
 import com.jme3.scene.plugins.blender.BlenderContext;
-import com.jme3.scene.plugins.blender.BlenderContext.LoadedFeatureDataType;
+import com.jme3.scene.plugins.blender.BlenderContext.LoadedDataType;
 import com.jme3.scene.plugins.blender.animations.AnimationHelper;
 import com.jme3.scene.plugins.blender.animations.BoneContext;
 import com.jme3.scene.plugins.blender.animations.Ipo;
@@ -170,30 +172,23 @@ public class ConstraintHelper extends AbstractBlenderHelper {
      *            the blender context
      */
     public void bakeConstraints(BlenderContext blenderContext) {
-        List<SimulationNode> simulationRootNodes = new ArrayList<SimulationNode>();
+        Set<Long> owners = new HashSet<Long>();
         for (Constraint constraint : blenderContext.getAllConstraints()) {
-            boolean constraintUsed = false;
-            for (SimulationNode node : simulationRootNodes) {
-                if (node.contains(constraint)) {
-                    constraintUsed = true;
-                    break;
+            if(constraint instanceof BoneConstraint) {
+                BoneContext boneContext = blenderContext.getBoneContext(constraint.ownerOMA);
+                owners.add(boneContext.getArmatureObjectOMA());
+            } else {
+                Spatial spatial = (Spatial) blenderContext.getLoadedFeature(constraint.ownerOMA, LoadedDataType.FEATURE);
+                while (spatial.getParent() != null) {
+                    spatial = spatial.getParent();
                 }
+                owners.add((Long)blenderContext.getMarkerValue(ObjectHelper.OMA_MARKER, spatial));
             }
-
-            if (!constraintUsed) {
-                if (constraint instanceof BoneConstraint) {
-                    BoneContext boneContext = blenderContext.getBoneContext(constraint.ownerOMA);
-                    simulationRootNodes.add(new SimulationNode(boneContext.getArmatureObjectOMA(), blenderContext));
-                } else if (constraint instanceof SpatialConstraint) {
-                    Spatial spatial = (Spatial) blenderContext.getLoadedFeature(constraint.ownerOMA, LoadedFeatureDataType.LOADED_FEATURE);
-                    while (spatial.getParent() != null) {
-                        spatial = spatial.getParent();
-                    }
-                    simulationRootNodes.add(new SimulationNode((Long) blenderContext.getMarkerValue(ObjectHelper.OMA_MARKER, spatial), blenderContext));
-                } else {
-                    throw new IllegalStateException("Unsupported constraint type: " + constraint);
-                }
-            }
+        }
+        
+        List<SimulationNode> simulationRootNodes = new ArrayList<SimulationNode>(owners.size());
+        for(Long ownerOMA : owners) {
+            simulationRootNodes.add(new SimulationNode(ownerOMA, blenderContext));
         }
 
         for (SimulationNode node : simulationRootNodes) {
@@ -213,7 +208,7 @@ public class ConstraintHelper extends AbstractBlenderHelper {
      * @return thensform of a feature in a given space
      */
     public Transform getTransform(Long oma, String subtargetName, Space space) {
-        Spatial feature = (Spatial) blenderContext.getLoadedFeature(oma, LoadedFeatureDataType.LOADED_FEATURE);
+        Spatial feature = (Spatial) blenderContext.getLoadedFeature(oma, LoadedDataType.FEATURE);
         boolean isArmature = blenderContext.getMarkerValue(ObjectHelper.ARMATURE_NODE_MARKER, feature) != null;
         if (isArmature) {
             blenderContext.getSkeleton(oma).updateWorldVectors();
@@ -228,7 +223,7 @@ public class ConstraintHelper extends AbstractBlenderHelper {
             Transform result;
             switch (space) {
                 case CONSTRAINT_SPACE_WORLD:
-                    Spatial model = (Spatial) blenderContext.getLoadedFeature(targetBoneContext.getSkeletonOwnerOma(), LoadedFeatureDataType.LOADED_FEATURE);
+                    Spatial model = (Spatial) blenderContext.getLoadedFeature(targetBoneContext.getSkeletonOwnerOma(), LoadedDataType.FEATURE);
                     Matrix4f boneModelMatrix = this.toMatrix(bone.getModelSpacePosition(), bone.getModelSpaceRotation(), bone.getModelSpaceScale(), tempVars.tempMat4);
                     Matrix4f modelWorldMatrix = this.toMatrix(model.getWorldTransform(), tempVars.tempMat42);
                     Matrix4f boneMatrixInWorldSpace = modelWorldMatrix.multLocal(boneModelMatrix);
@@ -295,7 +290,7 @@ public class ConstraintHelper extends AbstractBlenderHelper {
      *            the transform we apply
      */
     public void applyTransform(Long oma, String subtargetName, Space space, Transform transform) {
-        Spatial feature = (Spatial) blenderContext.getLoadedFeature(oma, LoadedFeatureDataType.LOADED_FEATURE);
+        Spatial feature = (Spatial) blenderContext.getLoadedFeature(oma, LoadedDataType.FEATURE);
         boolean isArmature = blenderContext.getMarkerValue(ObjectHelper.ARMATURE_NODE_MARKER, feature) != null;
         if (isArmature) {
             Skeleton skeleton = blenderContext.getSkeleton(oma);

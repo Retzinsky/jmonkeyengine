@@ -33,8 +33,8 @@ package com.jme3.material;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.renderer.Caps;
+import com.jme3.renderer.RenderManager;
 import com.jme3.shader.*;
-import com.jme3.util.ListMap;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -172,30 +172,23 @@ public class Technique /* implements Savable */ {
      * 
      * @param assetManager The asset manager to use for loading shaders.
      */
-    public void makeCurrent(AssetManager assetManager, boolean techniqueSwitched, EnumSet<Caps> rendererCaps) {
+    public void makeCurrent(AssetManager assetManager, boolean techniqueSwitched, EnumSet<Caps> rendererCaps, RenderManager rm) {
         if (!def.isUsingShaders()) {
             // No shaders are used, no processing is neccessary. 
             return;
         }
         
         if (techniqueSwitched) {
-            // If the technique was switched, check if the define list changed
-            // based on material parameters.
-            
-            ListMap params = owner.getParamsMap();
-            
-            if (!defines.equalsParams(params, def)) {
-                // Defines were changed, update define list
-                defines.clear();
-                for(int i=0;i<params.size();i++) {
-                    MatParam param = (MatParam)params.getValue(i);
-                    String defineName = def.getShaderParamDefine(param.getName());
-                    if (defineName != null) {
-                        defines.set(defineName, param.getVarType(), param.getValue());
-                    }
-                }
+            if (defines.update(owner.getParamsMap(), def)) {
                 needReload = true;
             }
+            if(getDef().getLightMode()== TechniqueDef.LightMode.SinglePass){
+                defines.set("SINGLE_PASS_LIGHTING", VarType.Boolean, true);
+                defines.set("NB_LIGHTS", VarType.Int, rm.getSinglePassLightBatchSize()*3 );
+            }else{
+                defines.set("SINGLE_PASS_LIGHTING", VarType.Boolean, null);
+            }
+            
         }
 
         if (needReload) {

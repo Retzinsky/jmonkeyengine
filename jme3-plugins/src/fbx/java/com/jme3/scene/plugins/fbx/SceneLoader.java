@@ -458,7 +458,7 @@ public class SceneLoader implements AssetLoader {
 			for(FBXElement e : element.children) {
 				if(e.id.equals("Type"))
 					data.type = (String) e.properties.get(0);
-				else if(e.id.equals("Filename"))
+				else if(e.id.equals("FileName"))
 					data.filename = (String) e.properties.get(0);
 				else if(e.id.equals("RelativeFilename"))
 					data.relativeFilename = (String) e.properties.get(0);
@@ -780,8 +780,8 @@ public class SceneLoader implements AssetLoader {
 				int index = unIndexMap[i];
 				if(index > srcCount)
 					throw new AssetLoadException("Invalid texcoord mapping. Unexpected lookup texcoord " + index + " from " + srcCount);
-				float u = (float) data.uv[2 * index + 0];
-				float v = (float) data.uv[2 * index + 1];
+				float u = index >= 0 ? (float) data.uv[2 * index + 0] : 0;
+				float v = index >= 0 ? (float) data.uv[2 * index + 1] : 0;
 				tcBuf.put(u).put(v);
 			}
 		}
@@ -959,10 +959,8 @@ public class SceneLoader implements AssetLoader {
 		// Build mesh nodes
 		for(long nodeId : modelDataMap.keySet()) {
 			ModelData data = modelDataMap.get(nodeId);
-			if(data.type.equals("Mesh")) {
-				Node node = createNode(data);
-				modelMap.put(nodeId, node);
-			}
+			Node node = createNode(data);
+			modelMap.put(nodeId, node);
 		}
 		// Link model nodes into scene
 		for(long modelId : modelMap.keySet()) {

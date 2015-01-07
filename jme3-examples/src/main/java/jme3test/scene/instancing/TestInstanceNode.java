@@ -55,7 +55,7 @@ public class TestInstanceNode extends SimpleApplication  {
     private final Material[] materials = new Material[6];
     private Node instancedNode;
     private float time = 0;
-    private boolean INSTANCING = false;
+    private boolean INSTANCING = true;
     
     public static void main(String[] args){
         TestInstanceNode app = new TestInstanceNode();
@@ -126,9 +126,9 @@ public class TestInstanceNode extends SimpleApplication  {
             ((InstancedNode)instancedNode).instance();
         }
         
-        instancedNode = (InstancedNode) instancedNode.clone();
-        instancedNode.move(0, 5, 0);
-        rootNode.attachChild(instancedNode);
+        //instancedNode = (InstancedNode) instancedNode.clone();
+        //instancedNode.move(0, 5, 0);
+        //rootNode.attachChild(instancedNode);
         
         cam.setLocation(new Vector3f(38.373516f, 6.689055f, 38.482082f));
         cam.setRotation(new Quaternion(-0.04004206f, 0.918326f, -0.096310444f, -0.38183528f));
@@ -166,8 +166,8 @@ public class TestInstanceNode extends SimpleApplication  {
         
         for (Spatial child : instancedNode.getChildren()) {
             if (!(child instanceof InstancedGeometry)) {
-                float val = child.getUserData("height");
-                float dir = child.getUserData("dir");
+                float val = ((Float)child.getUserData("height")).floatValue();
+                float dir = ((Float)child.getUserData("dir")).floatValue();
 
                 val += (dir + ((FastMath.nextRandomFloat() * 0.5f) - 0.25f)) * tpf;
 

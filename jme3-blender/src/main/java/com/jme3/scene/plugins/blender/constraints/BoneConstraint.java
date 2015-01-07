@@ -5,7 +5,7 @@ import java.util.logging.Logger;
 
 import com.jme3.scene.Spatial;
 import com.jme3.scene.plugins.blender.BlenderContext;
-import com.jme3.scene.plugins.blender.BlenderContext.LoadedFeatureDataType;
+import com.jme3.scene.plugins.blender.BlenderContext.LoadedDataType;
 import com.jme3.scene.plugins.blender.animations.BoneContext;
 import com.jme3.scene.plugins.blender.animations.Ipo;
 import com.jme3.scene.plugins.blender.file.BlenderFileException;
@@ -41,7 +41,7 @@ import com.jme3.scene.plugins.blender.objects.ObjectHelper;
     @Override
     public boolean validate() {
         if (targetOMA != null) {
-            Spatial nodeTarget = (Spatial) blenderContext.getLoadedFeature(targetOMA, LoadedFeatureDataType.LOADED_FEATURE);
+            Spatial nodeTarget = (Spatial) blenderContext.getLoadedFeature(targetOMA, LoadedDataType.FEATURE);
             if (nodeTarget == null) {
                 LOGGER.log(Level.WARNING, "Cannot find target for constraint: {0}.", name);
                 return false;
@@ -62,12 +62,27 @@ import com.jme3.scene.plugins.blender.objects.ObjectHelper;
                 }
             }
         }
-        return true;
+        return constraintDefinition == null ? true : constraintDefinition.isTargetRequired();
     }
 
     @Override
     public void apply(int frame) {
         super.apply(frame);
         blenderContext.getBoneContext(ownerOMA).getBone().updateModelTransforms();
+    }
+    
+    @Override
+    public Long getTargetOMA() {
+        if(targetOMA != null && subtargetName != null && !subtargetName.trim().isEmpty()) {
+            Spatial nodeTarget = (Spatial) blenderContext.getLoadedFeature(targetOMA, LoadedDataType.FEATURE);
+            if(nodeTarget != null) {
+                if(blenderContext.getMarkerValue(ObjectHelper.ARMATURE_NODE_MARKER, nodeTarget) != null) {
+                    BoneContext boneContext = blenderContext.getBoneByName(targetOMA, subtargetName);
+                    return boneContext != null ? boneContext.getBoneOma() : 0L;
+                }
+                return targetOMA;
+            }
+        }
+        return 0L;
     }
 }

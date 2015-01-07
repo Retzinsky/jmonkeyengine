@@ -159,6 +159,11 @@ public class MaterialLoader implements AssetLoader {
         String[] split = statement.getLine().split(" ", 2);
         String keyword = split[0];
         if (keyword.equals("texture")){
+            if (split.length < 2) {
+                logger.log(Level.WARNING, "Invalid texture directive, no image specified at [{0}]", 
+                                            statement.getLineNumber());
+                return;
+            }
             readTextureImage(split[1]);
         }else if (keyword.equals("tex_address_mode")){
             String mode = split[1];
@@ -338,7 +343,7 @@ public class MaterialLoader implements AssetLoader {
 //            rs.setDepthWrite(false);
             mat.setTransparent(true);
             if (!noLight){
-                mat.setBoolean("UseAlpha", true);
+                // mat.setBoolean("UseAlpha", true);
             }
         }else{
             if (twoSide){
@@ -450,6 +455,9 @@ public class MaterialLoader implements AssetLoader {
                 }
                 String[] split = statement.getLine().split(" ", 2);
                 matName = split[1].trim();
+                if (matName.startsWith("\"") && matName.endsWith("\"")) {
+                    matName = matName.substring(1, matName.length() - 1);
+                }
                 readMaterial(statement);
                 Material mat = compileMaterial();
                 list.put(matName, mat);
@@ -458,7 +466,7 @@ public class MaterialLoader implements AssetLoader {
         
         return list;
     }
-
+    
     public Object load(AssetInfo info) throws IOException {
         InputStream in = null;
         try {

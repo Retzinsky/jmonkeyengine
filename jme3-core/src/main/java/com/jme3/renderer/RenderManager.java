@@ -31,12 +31,19 @@
  */
 package com.jme3.renderer;
 
+import com.jme3.light.DefaultLightFilter;
+import com.jme3.light.LightFilter;
+import com.jme3.light.LightList;
 import com.jme3.material.Material;
 import com.jme3.material.MaterialDef;
 import com.jme3.material.RenderState;
 import com.jme3.material.Technique;
+import com.jme3.material.TechniqueDef;
 import com.jme3.math.*;
 import com.jme3.post.SceneProcessor;
+import com.jme3.profile.AppProfiler;
+import com.jme3.profile.AppStep;
+import com.jme3.profile.VpStep;
 import com.jme3.renderer.queue.GeometryList;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.renderer.queue.RenderQueue.Bucket;
@@ -78,8 +85,13 @@ public class RenderManager {
     private boolean shader;
     private int viewX, viewY, viewWidth, viewHeight;
     private Matrix4f orthoMatrix = new Matrix4f();
+    private LightList filteredLightList = new LightList(null);
     private String tmpTech;
     private boolean handleTranlucentBucket = true;
+    private AppProfiler prof;
+    private LightFilter lightFilter = new DefaultLightFilter();
+    private TechniqueDef.LightMode preferredLightMode = TechniqueDef.LightMode.MultiPass;
+    private int singlePassLightBatchSize = 1;
 
     /**
      * Create a high-level rendering interface over the
@@ -378,6 +390,15 @@ public class RenderManager {
     }
 
     /**
+     * Sets an AppProfiler hook that will be called back for
+     * specific steps within a single update frame.  Value defaults
+     * to null.
+     */
+    public void setAppProfiler(AppProfiler prof) {
+        this.prof = prof;
+    }
+
+    /**
      * Returns the forced technique name set.
      * 
      * @return the forced technique name set.
@@ -508,6 +529,16 @@ public class RenderManager {
         } else {
             setWorldMatrix(g.getWorldMatrix());
         }
+        
+        // Perform light filtering if we have a light filter.
+        LightList lightList = g.getWorldLightList();
+        
+        if (lightFilter != null) {
+            filteredLightList.clear();
+            lightFilter.filterLights(g, filteredLightList);
+            lightList = filteredLightList;
+        }
+        
 
         //if forcedTechnique we try to force it for render,
         //if it does not exists in the mat def, we check for forcedMaterial and render the geom if not null
@@ -523,7 +554,7 @@ public class RenderManager {
                     forcedRenderState = g.getMaterial().getActiveTechnique().getDef().getForcedRenderState();
                 }
                 // use geometry's material
-                g.getMaterial().render(g, this);
+                g.getMaterial().render(g, lightList, this);
                 g.getMaterial().selectTechnique(tmpTech, this);
 
                 //restoring forcedRenderState
@@ -533,13 +564,13 @@ public class RenderManager {
                 //If forcedTechnique does not exists, and frocedMaterial is not set, the geom MUST NOT be rendered
             } else if (forcedMaterial != null) {
                 // use forced material
-                forcedMaterial.render(g, this);
+                forcedMaterial.render(g, lightList, this);
             }
         } else if (forcedMaterial != null) {
             // use forced material
-            forcedMaterial.render(g, this);
+            forcedMaterial.render(g, lightList, this);
         } else {
-            g.getMaterial().render(g, this);
+            g.getMaterial().render(g, lightList, this);
         }
     }
 
@@ -753,6 +784,33 @@ public class RenderManager {
     }
 
     /**
+     * Sets the light filter to use when rendering Lighted Geometries
+     * 
+     * @see LightFilter
+     * @param lightFilter The light filter tose. Set it to null if you want all lights to be rendered
+     */
+    public void setLightFilter(LightFilter lightFilter) {
+        this.lightFilter = lightFilter;
+    }
+
+    public void setPreferredLightMode(TechniqueDef.LightMode preferredLightMode) {
+        this.preferredLightMode = preferredLightMode;
+    }
+
+    public TechniqueDef.LightMode getPreferredLightMode() {
+        return preferredLightMode;
+    }
+
+    public int getSinglePassLightBatchSize() {
+        return singlePassLightBatchSize;
+    }
+
+    public void setSinglePassLightBatchSize(int singlePassLightBatchSize) {
+        this.singlePassLightBatchSize = singlePassLightBatchSize;
+    }
+    
+    
+    /**
      * Render the given viewport queues.
      * <p>
      * Changes the {@link Renderer#setDepthRange(float, float) depth range}
@@ -779,10 +837,12 @@ public class RenderManager {
 
         // render opaque objects with default depth range
         // opaque objects are sorted front-to-back, reducing overdraw
+        if (prof!=null) prof.vpStep(VpStep.RenderBucket, vp, Bucket.Opaque);
         rq.renderQueue(Bucket.Opaque, this, cam, flush);
 
         // render the sky, with depth range set to the farthest
         if (!rq.isQueueEmpty(Bucket.Sky)) {
+            if (prof!=null) prof.vpStep(VpStep.RenderBucket, vp, Bucket.Sky);
             renderer.setDepthRange(1, 1);
             rq.renderQueue(Bucket.Sky, this, cam, flush);
             depthRangeChanged = true;
@@ -793,6 +853,7 @@ public class RenderManager {
         // rest of the scene's objects. Consequently, they are sorted
         // back-to-front.
         if (!rq.isQueueEmpty(Bucket.Transparent)) {
+            if (prof!=null) prof.vpStep(VpStep.RenderBucket, vp, Bucket.Transparent);
             if (depthRangeChanged) {
                 renderer.setDepthRange(0, 1);
                 depthRangeChanged = false;
@@ -802,6 +863,7 @@ public class RenderManager {
         }
 
         if (!rq.isQueueEmpty(Bucket.Gui)) {
+            if (prof!=null) prof.vpStep(VpStep.RenderBucket, vp, Bucket.Gui);
             renderer.setDepthRange(0, 0);
             setCamera(cam, true);
             rq.renderQueue(Bucket.Gui, this, cam, flush);
@@ -828,6 +890,8 @@ public class RenderManager {
      * @see #setHandleTranslucentBucket(boolean) 
      */
     public void renderTranslucentQueue(ViewPort vp) {
+        if (prof!=null) prof.vpStep(VpStep.RenderBucket, vp, Bucket.Translucent);
+        
         RenderQueue rq = vp.getQueue();
         if (!rq.isQueueEmpty(Bucket.Translucent) && handleTranlucentBucket) {
             rq.renderQueue(Bucket.Translucent, this, vp.getCamera(), true);
@@ -897,6 +961,10 @@ public class RenderManager {
      * false if to use the camera's view and projection matrices.
      */
     public void setCamera(Camera cam, boolean ortho) {
+        // Tell the light filter which camera to use for filtering.
+        if (lightFilter != null) {
+            lightFilter.setCamera(cam);
+        }
         setViewPort(cam);
         setViewProjection(cam, ortho);
     }
@@ -963,6 +1031,8 @@ public class RenderManager {
         if (!vp.isEnabled()) {
             return;
         }
+        if (prof!=null) prof.vpStep(VpStep.BeginRender, vp, null);
+                
         SafeArrayList<SceneProcessor> processors = vp.getProcessors();
         if (processors.isEmpty()) {
             processors = null;
@@ -988,20 +1058,24 @@ public class RenderManager {
                     vp.isClearStencil());
         }
 
+        if (prof!=null) prof.vpStep(VpStep.RenderScene, vp, null);
         List<Spatial> scenes = vp.getScenes();
         for (int i = scenes.size() - 1; i >= 0; i--) {            
             renderScene(scenes.get(i), vp);
         }
 
         if (processors != null) {
+            if (prof!=null) prof.vpStep(VpStep.PostQueue, vp, null);
             for (SceneProcessor proc : processors.getArray()) {
                 proc.postQueue(vp.getQueue());
             }
         }
 
+        if (prof!=null) prof.vpStep(VpStep.FlushQueue, vp, null);
         flushQueue(vp);
 
         if (processors != null) {
+            if (prof!=null) prof.vpStep(VpStep.PostFrame, vp, null);
             for (SceneProcessor proc : processors.getArray()) {
                 proc.postFrame(vp.getOutputFrameBuffer());
             }
@@ -1010,6 +1084,8 @@ public class RenderManager {
         renderTranslucentQueue(vp);
         // clear any remaining spatials that were not rendered.
         clearQueue(vp);
+        
+        if (prof!=null) prof.vpStep(VpStep.EndRender, vp, null);
     }
 
     public void setUsingShaders(boolean usingShaders) { 
@@ -1037,18 +1113,23 @@ public class RenderManager {
         this.shader = renderer.getCaps().contains(Caps.GLSL100);
         uniformBindingManager.newFrame();        
 
+        if (prof!=null) prof.appStep(AppStep.RenderPreviewViewPorts);        
         for (int i = 0; i < preViewPorts.size(); i++) {
             ViewPort vp = preViewPorts.get(i);
             if (vp.getOutputFrameBuffer() != null || mainFrameBufferActive) {
                 renderViewPort(vp, tpf);
             }
         }
+        
+        if (prof!=null) prof.appStep(AppStep.RenderMainViewPorts);
         for (int i = 0; i < viewPorts.size(); i++) {
             ViewPort vp = viewPorts.get(i);
             if (vp.getOutputFrameBuffer() != null || mainFrameBufferActive) {
                 renderViewPort(vp, tpf);
             }
         }
+        
+        if (prof!=null) prof.appStep(AppStep.RenderPostViewPorts);
         for (int i = 0; i < postViewPorts.size(); i++) {
             ViewPort vp = postViewPorts.get(i);
             if (vp.getOutputFrameBuffer() != null || mainFrameBufferActive) {

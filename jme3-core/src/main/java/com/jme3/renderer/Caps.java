@@ -53,6 +53,21 @@ public enum Caps {
      * <p>
      * OpenGL: Renderer exposes the GL_EXT_framebuffer_object extension.<br>
      * OpenGL ES: Renderer supports OpenGL ES 2.0.
+     *//**
+     * Supports {@link FrameBuffer FrameBuffers}.
+     * <p>
+     * OpenGL: Renderer exposes the GL_EXT_framebuffer_object extension.<br>
+     * OpenGL ES: Renderer supports OpenGL ES 2.0.
+     *//**
+     * Supports {@link FrameBuffer FrameBuffers}.
+     * <p>
+     * OpenGL: Renderer exposes the GL_EXT_framebuffer_object extension.<br>
+     * OpenGL ES: Renderer supports OpenGL ES 2.0.
+     *//**
+     * Supports {@link FrameBuffer FrameBuffers}.
+     * <p>
+     * OpenGL: Renderer exposes the GL_EXT_framebuffer_object extension.<br>
+     * OpenGL ES: Renderer supports OpenGL ES 2.0.
      */
     FrameBuffer,
 
@@ -107,12 +122,12 @@ public enum Caps {
     OpenGL32,
 
     /**
-     * Supports OpenGL ARB program.
-     * <p>
-     * OpenGL: Renderer exposes ARB_vertex_program and ARB_fragment_program
-     * extensions.
+     * Do not use.
+     * 
+     * @deprecated do not use.
      */
-    ARBprogram,
+    @Deprecated
+    Reserved0,
     
     /**
      * Supports GLSL 1.0
@@ -170,7 +185,7 @@ public enum Caps {
     TextureBuffer,
 
     /**
-     * Supports floating point textures (Format.RGB16F)
+     * Supports floating point & half textures (Format.RGB16F)
      */
     FloatTexture,
 
@@ -205,17 +220,21 @@ public enum Caps {
     SharedExponentColorBuffer,
     
     /**
-     * Supports Format.LATC for textures, this includes
-     * support for ATI's 3Dc texture compression.
+     * Do not use.
+     * 
+     * @deprecated do not use.
      */
-    TextureCompressionLATC,
+    @Deprecated
+    Reserved1,
 
     /**
      * Supports Non-Power-Of-Two (NPOT) textures and framebuffers
      */
     NonPowerOfTwoTextures,
 
-    /// Vertex Buffer features
+    /**
+     * Supports geometry instancing.
+     */
     MeshInstancing,
 
     /**
@@ -236,7 +255,53 @@ public enum Caps {
     /**
      * Supports sRGB framebuffers and sRGB texture format
      */
-    Srgb;
+    Srgb,
+    
+    /**
+     * Supports blitting framebuffers.
+     */
+    FrameBufferBlit,
+    
+    /**
+     * Supports {@link Format#DXT1} and sister formats.
+     */
+    TextureCompressionS3TC,
+    
+    /**
+     * Supports anisotropic texture filtering.
+     */
+    TextureFilterAnisotropic,
+    
+    /**
+     * Supports {@link Format#ETC1} texture compression.
+     */
+    TextureCompressionETC1,
+    
+    /**
+     * Supports {@link Format#ETC1} texture compression by uploading
+     * the texture as ETC2 (they are backwards compatible).
+     */
+    TextureCompressionETC2,
+    
+    /**
+     * Supports OpenGL ES 2
+     */
+    OpenGLES20,
+    
+    /**
+     * Supports RGB8 / RGBA8 textures
+     */
+    Rgba8,
+    
+    /**
+     * Supports depth textures.
+     */
+    DepthTexture,
+    
+    /**
+     * Supports 32-bit index buffers.
+     */
+    IntegerIndexBuffer;
 
     /**
      * Returns true if given the renderer capabilities, the texture
@@ -265,8 +330,6 @@ public enum Caps {
                 return caps.contains(Caps.PackedDepthStencilBuffer);
             case Depth32F:
                 return caps.contains(Caps.FloatDepthBuffer);
-            case LATC:
-                return caps.contains(Caps.TextureCompressionLATC);
             case RGB16F_to_RGB111110F:
             case RGB111110F:
                 return caps.contains(Caps.PackedFloatTexture);

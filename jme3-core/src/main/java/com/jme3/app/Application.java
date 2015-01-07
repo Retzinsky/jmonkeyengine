@@ -38,6 +38,8 @@ import com.jme3.audio.AudioRenderer;
 import com.jme3.audio.Listener;
 import com.jme3.input.*;
 import com.jme3.math.Vector3f;
+import com.jme3.profile.AppProfiler;
+import com.jme3.profile.AppStep;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.Renderer;
@@ -90,6 +92,8 @@ public class Application implements SystemListener {
     protected TouchInput touchInput;
     protected InputManager inputManager;
     protected AppStateManager stateManager;
+
+    protected AppProfiler prof;
 
     private final ConcurrentLinkedQueue<AppTask<?>> taskQueue = new ConcurrentLinkedQueue<AppTask<?>>();
 
@@ -250,6 +254,11 @@ public class Application implements SystemListener {
         renderManager = new RenderManager(renderer);
         //Remy - 09/14/2010 setted the timer in the renderManager
         renderManager.setTimer(timer);
+        
+        if (prof != null) {
+            renderManager.setAppProfiler(prof);
+        }
+        
         viewPort = renderManager.createMainView("Default", cam);
         viewPort.setClearFlags(true, true, true);
 
@@ -388,6 +397,25 @@ public class Application implements SystemListener {
     }
 
     /**
+     * Sets an AppProfiler hook that will be called back for
+     * specific steps within a single update frame.  Value defaults
+     * to null.
+     */
+    public void setAppProfiler(AppProfiler prof) {
+        this.prof = prof;
+        if (renderManager != null) {
+            renderManager.setAppProfiler(prof);
+        }
+    }
+ 
+    /**
+     * Returns the current AppProfiler hook, or null if none is set.
+     */   
+    public AppProfiler getAppProfiler() {
+        return prof;
+    }
+
+    /**
      * Initializes the application's canvas for use.
      * <p>
      * After calling this method, cast the {@link #getContext() context} to
@@ -518,12 +546,14 @@ public class Application implements SystemListener {
     public void handleError(String errMsg, Throwable t){
         // Print error to log.
         logger.log(Level.SEVERE, errMsg, t);
-        // Display error message on screen
-        if (t != null) {
-            JmeSystem.showErrorDialog(errMsg + "\n" + t.getClass().getSimpleName() +
-                    (t.getMessage() != null ? ": " +  t.getMessage() : ""));
-        } else {
-            JmeSystem.showErrorDialog(errMsg);
+        // Display error message on screen if not in headless mode
+        if (context.getType() != JmeContext.Type.Headless) {
+            if (t != null) {
+                JmeSystem.showErrorDialog(errMsg + "\n" + t.getClass().getSimpleName() +
+                        (t.getMessage() != null ? ": " +  t.getMessage() : ""));
+            } else {
+                JmeSystem.showErrorDialog(errMsg);
+            }
         }
 
         stop(); // stop the application
@@ -593,6 +623,7 @@ public class Application implements SystemListener {
         // Make sure the audio renderer is available to callables
         AudioContext.setAudioRenderer(audioRenderer);
 
+        if (prof!=null) prof.appStep(AppStep.QueuedTasks);
         runQueuedTasks();
 
         if (speed == 0 || paused)
@@ -601,10 +632,12 @@ public class Application implements SystemListener {
         timer.update();
 
         if (inputEnabled){
+            if (prof!=null) prof.appStep(AppStep.ProcessInput);
             inputManager.update(timer.getTimePerFrame());
         }
 
         if (audioRenderer != null){
+            if (prof!=null) prof.appStep(AppStep.ProcessAudio);
             audioRenderer.update(timer.getTimePerFrame());
         }
 

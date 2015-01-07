@@ -1,91 +1,150 @@
 package com.jme3.scene.plugins.blender.constraints.definitions;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
 import com.jme3.animation.Bone;
-import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.plugins.blender.BlenderContext;
 import com.jme3.scene.plugins.blender.animations.BoneContext;
-import com.jme3.scene.plugins.blender.constraints.ConstraintHelper;
 import com.jme3.scene.plugins.blender.constraints.ConstraintHelper.Space;
 import com.jme3.scene.plugins.blender.file.Structure;
+import com.jme3.scene.plugins.blender.math.DQuaternion;
+import com.jme3.scene.plugins.blender.math.DTransform;
+import com.jme3.scene.plugins.blender.math.Vector3d;
 
+/**
+ * The Inverse Kinematics constraint.
+ * 
+ * @author Wesley Shillingford (wezrule)
+ * @author Marcin Roguski (Kaelthas)
+ */
 public class ConstraintDefinitionIK extends ConstraintDefinition {
-
-    private static final int FLAG_POSITION = 0x20;
+    private static final float MIN_DISTANCE  = 0.0001f;
+    private static final int   FLAG_USE_TAIL = 0x01;
+    private static final int   FLAG_POSITION = 0x20;
 
     /** The number of affected bones. Zero means that all parent bones of the current bone should take part in baking. */
-    private int              bonesAffected;
-    private float            chainLength;
-    private BoneContext[]    bones;
-    private boolean          needToCompute = true;
+    private int                bonesAffected;
+    /** The total length of the bone chain. Useful for optimisation of computations speed in some cases. */
+    private double              chainLength;
+    /** Indicates if the tail of the bone should be used or not. */
+    private boolean            useTail;
+    /** The amount of iterations of the algorithm. */
+    private int                iterations;
 
     public ConstraintDefinitionIK(Structure constraintData, Long ownerOMA, BlenderContext blenderContext) {
         super(constraintData, ownerOMA, blenderContext);
         bonesAffected = ((Number) constraintData.getFieldValue("rootbone")).intValue();
+        iterations = ((Number) constraintData.getFieldValue("iterations")).intValue();
+        useTail = (flag & FLAG_USE_TAIL) != 0;
 
         if ((flag & FLAG_POSITION) == 0) {
-            needToCompute = false;
+            trackToBeChanged = false;
         }
 
-        if (needToCompute) {
+        if (trackToBeChanged) {
             alteredOmas = new HashSet<Long>();
         }
     }
-    
+
     @Override
     public void bake(Space ownerSpace, Space targetSpace, Transform targetTransform, float influence) {
-        if (needToCompute && influence != 0) {
-            ConstraintHelper constraintHelper = blenderContext.getHelper(ConstraintHelper.class);
-            BoneContext[] boneContexts = this.getBones();
-            float b = chainLength;
-            Quaternion boneWorldRotation = new Quaternion();
+        if (influence == 0 || !trackToBeChanged || targetTransform == null) {
+            return;// no need to do anything
+        }
+        DQuaternion q = new DQuaternion();
+        Vector3d t = new Vector3d(targetTransform.getTranslation());
+        List<BoneContext> bones = this.loadBones();
+        if (bones.size() == 0) {
+            return;// no need to do anything
+        }
+        double distanceFromTarget = Double.MAX_VALUE;
 
-            for (int i = 0; i < boneContexts.length; ++i) {
-                Bone bone = boneContexts[i].getBone();
+        int iterations = this.iterations;
+        if (bones.size() == 1) {
+            iterations = 1;// if only one bone is in the chain then only one iteration that will properly rotate it will be needed
+        } else {
+            // if the target cannot be rached by the bones' chain then the chain will become straight and point towards the target
+            // in this case only one iteration will be needed, computed from the root to top bone
+            BoneContext rootBone = bones.get(bones.size() - 1);
+            Transform rootBoneTransform = constraintHelper.getTransform(rootBone.getArmatureObjectOMA(), rootBone.getBone().getName(), Space.CONSTRAINT_SPACE_WORLD);
+            if (t.distance(new Vector3d(rootBoneTransform.getTranslation())) >= chainLength) {
+                Collections.reverse(bones);
 
-                bone.updateModelTransforms();
-                Transform boneWorldTransform = constraintHelper.getTransform(boneContexts[i].getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD);
+                for (BoneContext boneContext : bones) {
+                    Bone bone = boneContext.getBone();
+                    DTransform boneTransform = new DTransform(constraintHelper.getTransform(boneContext.getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD));
 
-                Vector3f head = boneWorldTransform.getTranslation();
-                Vector3f tail = head.add(bone.getModelSpaceRotation().mult(Vector3f.UNIT_Y.mult(boneContexts[i].getLength())));
+                    Vector3d e = boneTransform.getTranslation().add(boneTransform.getRotation().mult(Vector3d.UNIT_Y).multLocal(boneContext.getLength()));// effector
+                    Vector3d j = boneTransform.getTranslation(); // current join position
 
-                Vector3f vectorA = tail.subtract(head);
-                float a = vectorA.length();
-                vectorA.normalizeLocal();
+                    Vector3d currentDir = e.subtractLocal(j).normalizeLocal();
+                    Vector3d target = t.subtract(j).normalizeLocal();
+                    double angle = currentDir.angleBetween(target);
+                    if (angle != 0) {
+                        Vector3d cross = currentDir.crossLocal(target).normalizeLocal();
+                        q.fromAngleAxis(angle, cross);
+                        if (boneContext.isLockX()) {
+                            q.set(0, q.getY(), q.getZ(), q.getW());
+                        }
+                        if (boneContext.isLockY()) {
+                            q.set(q.getX(), 0, q.getZ(), q.getW());
+                        }
+                        if (boneContext.isLockZ()) {
+                            q.set(q.getX(), q.getY(), 0, q.getW());
+                        }
 
-                Vector3f vectorC = targetTransform.getTranslation().subtract(head);
-                float c = vectorC.length();
-                vectorC.normalizeLocal();
-
-                b -= a;
-                float theta = 0;
-
-                if (c >= a + b) {
-                    theta = vectorA.angleBetween(vectorC);
-                } else if (c <= FastMath.abs(a - b) && i < boneContexts.length - 1) {
-                    theta = vectorA.angleBetween(vectorC) - FastMath.HALF_PI;
-                } else {
-                    theta = vectorA.angleBetween(vectorC) - FastMath.acos(-(b * b - a * a - c * c) / (2 * a * c));
+                        boneTransform.getRotation().set(q.multLocal(boneTransform.getRotation()));
+                        constraintHelper.applyTransform(boneContext.getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD, boneTransform.toTransform());
+                    }
                 }
-                
-                theta *= influence;
 
-                if (theta != 0) {
-                    Vector3f vectorR = vectorA.cross(vectorC);
-                    boneWorldRotation.fromAngleAxis(theta, vectorR);
-                    boneWorldTransform.getRotation().multLocal(boneWorldRotation);
-                    constraintHelper.applyTransform(boneContexts[i].getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD, boneWorldTransform);
-                }
-
-                bone.updateModelTransforms();
-                alteredOmas.add(boneContexts[i].getBoneOma());
+                iterations = 0;
             }
+        }
+
+        BoneContext topBone = bones.get(0);
+        for (int i = 0; i < iterations && distanceFromTarget > MIN_DISTANCE; ++i) {
+            for (BoneContext boneContext : bones) {
+                Bone bone = boneContext.getBone();
+                DTransform topBoneTransform = new DTransform(constraintHelper.getTransform(topBone.getArmatureObjectOMA(), topBone.getBone().getName(), Space.CONSTRAINT_SPACE_WORLD));
+                DTransform boneWorldTransform = new DTransform(constraintHelper.getTransform(boneContext.getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD));
+
+                Vector3d e = topBoneTransform.getTranslation().addLocal(topBoneTransform.getRotation().mult(Vector3d.UNIT_Y).multLocal(topBone.getLength()));// effector
+                Vector3d j = boneWorldTransform.getTranslation(); // current join position
+
+                Vector3d currentDir = e.subtractLocal(j).normalizeLocal();
+                Vector3d target = t.subtract(j).normalizeLocal();
+                double angle = currentDir.angleBetween(target);
+                if (angle != 0) {
+                    Vector3d cross = currentDir.crossLocal(target).normalizeLocal();
+                    q.fromAngleAxis(angle, cross);
+
+                    if (boneContext.isLockX()) {
+                        q.set(0, q.getY(), q.getZ(), q.getW());
+                    }
+                    if (boneContext.isLockY()) {
+                        q.set(q.getX(), 0, q.getZ(), q.getW());
+                    }
+                    if (boneContext.isLockZ()) {
+                        q.set(q.getX(), q.getY(), 0, q.getW());
+                    }
+
+                    boneWorldTransform.getRotation().set(q.multLocal(boneWorldTransform.getRotation()));
+                    constraintHelper.applyTransform(boneContext.getArmatureObjectOMA(), bone.getName(), Space.CONSTRAINT_SPACE_WORLD, boneWorldTransform.toTransform());
+                } else {
+                    iterations = 0;
+                    break;
+                }
+            }
+
+            DTransform topBoneTransform = new DTransform(constraintHelper.getTransform(topBone.getArmatureObjectOMA(), topBone.getBone().getName(), Space.CONSTRAINT_SPACE_WORLD));
+            Vector3d e = topBoneTransform.getTranslation().addLocal(topBoneTransform.getRotation().mult(Vector3d.UNIT_Y).multLocal(topBone.getLength()));// effector
+            distanceFromTarget = e.distance(t);
         }
     }
 
@@ -97,21 +156,53 @@ public class ConstraintDefinitionIK extends ConstraintDefinition {
     /**
      * @return the bone contexts of all bones that will be used in this constraint computations
      */
-    private BoneContext[] getBones() {
-        if (bones == null) {
-            List<BoneContext> bones = new ArrayList<BoneContext>();
-            Bone bone = (Bone) this.getOwner();
-            while (bone != null) {
-                BoneContext boneContext = blenderContext.getBoneContext(bone);
-                bones.add(0, boneContext);
-                chainLength += boneContext.getLength();
-                if (bonesAffected != 0 && bones.size() >= bonesAffected) {
-                    break;
-                }
-                bone = bone.getParent();
+    private List<BoneContext> loadBones() {
+        List<BoneContext> bones = new ArrayList<BoneContext>();
+        Bone bone = (Bone) this.getOwner();
+        if (bone == null) {
+            return bones;
+        }
+        if (!useTail) {
+            bone = bone.getParent();
+        }
+        chainLength = 0;
+        while (bone != null) {
+            BoneContext boneContext = blenderContext.getBoneContext(bone);
+            chainLength += boneContext.getLength();
+            bones.add(boneContext);
+            alteredOmas.add(boneContext.getBoneOma());
+            if (bonesAffected != 0 && bones.size() >= bonesAffected) {
+                break;
             }
-            this.bones = bones.toArray(new BoneContext[bones.size()]);
+            // need to add spaces between bones to the chain length
+            Transform boneWorldTransform = constraintHelper.getTransform(boneContext.getArmatureObjectOMA(), boneContext.getBone().getName(), Space.CONSTRAINT_SPACE_WORLD);
+            Vector3f boneWorldTranslation = boneWorldTransform.getTranslation();
+
+            bone = bone.getParent();
+
+            if (bone != null) {
+                boneContext = blenderContext.getBoneContext(bone);
+                Transform parentWorldTransform = constraintHelper.getTransform(boneContext.getArmatureObjectOMA(), boneContext.getBone().getName(), Space.CONSTRAINT_SPACE_WORLD);
+                Vector3f parentWorldTranslation = parentWorldTransform.getTranslation();
+                chainLength += boneWorldTranslation.distance(parentWorldTranslation);
+            }
         }
         return bones;
+    }
+
+    @Override
+    public boolean isTrackToBeChanged() {
+        if (trackToBeChanged) {
+            // need to check the bone structure too (when constructor was called not all of the bones might have been loaded yet)
+            // that is why it is also checked here
+            List<BoneContext> bones = this.loadBones();
+            trackToBeChanged = bones.size() > 0;
+        }
+        return trackToBeChanged;
+    }
+
+    @Override
+    public boolean isTargetRequired() {
+        return true;
     }
 }

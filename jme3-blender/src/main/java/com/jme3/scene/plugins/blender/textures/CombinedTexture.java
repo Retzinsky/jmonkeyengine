@@ -5,8 +5,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,9 +17,10 @@ import com.jme3.math.Vector2f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.plugins.blender.BlenderContext;
-import com.jme3.scene.plugins.blender.BlenderContext.LoadedFeatureDataType;
+import com.jme3.scene.plugins.blender.BlenderContext.LoadedDataType;
 import com.jme3.scene.plugins.blender.file.Structure;
 import com.jme3.scene.plugins.blender.materials.MaterialContext;
+import com.jme3.scene.plugins.blender.meshes.TemporalMesh;
 import com.jme3.scene.plugins.blender.textures.TriangulatedTexture.TriangleTextureElement;
 import com.jme3.scene.plugins.blender.textures.UVCoordinatesGenerator.UVCoordinatesType;
 import com.jme3.scene.plugins.blender.textures.UVProjectionGenerator.UVProjectionType;
@@ -34,6 +35,7 @@ import com.jme3.texture.Texture.MinFilter;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.TextureCubeMap;
+import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 
 /**
@@ -132,8 +134,7 @@ public class CombinedTexture {
      * @param blenderContext
      *            the blender context
      */
-    @SuppressWarnings("unchecked")
-    public void flatten(Geometry geometry, Long geometriesOMA, LinkedHashMap<String, List<Vector2f>> userDefinedUVCoordinates, BlenderContext blenderContext) {
+    public void flatten(Geometry geometry, Long geometriesOMA, Map<String, List<Vector2f>> userDefinedUVCoordinates, BlenderContext blenderContext) {
         Mesh mesh = geometry.getMesh();
         Texture previousTexture = null;
         UVCoordinatesType masterUVCoordinatesType = null;
@@ -159,8 +160,8 @@ public class CombinedTexture {
                         }
                         masterUserUVSetName = textureData.uvCoordinatesName;
                     } else {
-                        List<Geometry> geometries = (List<Geometry>) blenderContext.getLoadedFeature(geometriesOMA, LoadedFeatureDataType.LOADED_FEATURE);
-                        resultUVS = UVCoordinatesGenerator.generateUVCoordinatesFor2DTexture(mesh, textureData.uvCoordinatesType, textureData.projectionType, geometries);
+                        TemporalMesh temporalMesh = (TemporalMesh) blenderContext.getLoadedFeature(geometriesOMA, LoadedDataType.TEMPORAL_MESH);
+                        resultUVS = UVCoordinatesGenerator.generateUVCoordinatesFor2DTexture(mesh, textureData.uvCoordinatesType, textureData.projectionType, temporalMesh);
                     }
                 }
                 this.blend(resultTexture, textureData.textureBlender, blenderContext);
@@ -198,7 +199,7 @@ public class CombinedTexture {
                                 textureUVS = userDefinedUVCoordinates.get(textureData.uvCoordinatesName);
                             }
                         } else {
-                            List<Geometry> geometries = (List<Geometry>) blenderContext.getLoadedFeature(geometriesOMA, LoadedFeatureDataType.LOADED_FEATURE);
+                            TemporalMesh geometries = (TemporalMesh) blenderContext.getLoadedFeature(geometriesOMA, LoadedDataType.TEMPORAL_MESH);
                             textureUVS = UVCoordinatesGenerator.generateUVCoordinatesFor2DTexture(mesh, textureData.uvCoordinatesType, textureData.projectionType, geometries);
                         }
                         TriangulatedTexture triangulatedTexture = new TriangulatedTexture((Texture2D) textureData.texture, textureUVS, blenderContext);
@@ -297,7 +298,7 @@ public class CombinedTexture {
                 for (int i = 0; i < 6; ++i) {
                     data.add(BufferUtils.clone(sourceData));
                 }
-                texture = new TextureCubeMap(new Image(image.getFormat(), image.getWidth(), image.getHeight(), 6, data));
+                texture = new TextureCubeMap(new Image(image.getFormat(), image.getWidth(), image.getHeight(), 6, data, ColorSpace.Linear));
             }
 
             if (result == null) {
@@ -433,13 +434,10 @@ public class CombinedTexture {
                 switch (image.getFormat()) {
                     case BGR8:
                     case DXT1:
-                    case Luminance16:
                     case Luminance16F:
                     case Luminance32F:
                     case Luminance8:
-                    case RGB10:
                     case RGB111110F:
-                    case RGB16:
                     case RGB16F:
                     case RGB32F:
                     case RGB565:
@@ -448,10 +446,8 @@ public class CombinedTexture {
                     case ABGR8:
                     case DXT3:
                     case DXT5:
-                    case Luminance16Alpha16:
                     case Luminance16FAlpha16F:
                     case Luminance8Alpha8:
-                    case RGBA16:
                     case RGBA16F:
                     case RGBA32F:
                     case RGBA8:// with these types it is better to make sure if the texture is or is not transparent

@@ -121,9 +121,22 @@ public class IGLESShaderRenderer implements Renderer {
         logger.log(Level.FINE, "IGLESShaderRenderer clearBuffers");
         int bits = 0;
         if (color) {
+            //See explanations of the depth below, we must enable color write to be able to clear the color buffer
+            if (context.colorWriteEnabled == false) {
+                JmeIosGLES.glColorMask(true, true, true, true);
+                context.colorWriteEnabled = true;
+            }
             bits = JmeIosGLES.GL_COLOR_BUFFER_BIT;
         }
         if (depth) {
+            //glClear(GL_DEPTH_BUFFER_BIT) seems to not work when glDepthMask is false
+            //here s some link on openl board
+            //http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=257223
+            //if depth clear is requested, we enable the depthMask
+            if (context.depthWriteEnabled == false) {
+                JmeIosGLES.glDepthMask(true);
+                context.depthWriteEnabled = true;
+            }
             bits |= JmeIosGLES.GL_DEPTH_BUFFER_BIT;
         }
         if (stencil) {
@@ -2222,7 +2235,7 @@ public class IGLESShaderRenderer implements Renderer {
 
     private int convertAttachmentSlot(int attachmentSlot) {
         // can also add support for stencil here
-        if (attachmentSlot == -100) {
+        if (attachmentSlot == FrameBuffer.SLOT_DEPTH) {
             return JmeIosGLES.GL_DEPTH_ATTACHMENT;
         } else if (attachmentSlot == 0) {
             return JmeIosGLES.GL_COLOR_ATTACHMENT0;
@@ -2579,5 +2592,9 @@ public class IGLESShaderRenderer implements Renderer {
 
     public void setLinearizeSrgbImages(boolean linearize) {
       
+    }
+    
+    public void readFrameBufferWithFormat(FrameBuffer fb, ByteBuffer byteBuf, Image.Format format) {
+        throw new UnsupportedOperationException("Not supported yet. URA will make that work seamlessly"); 
     }
 }
