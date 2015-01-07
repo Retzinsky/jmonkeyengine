@@ -1,3 +1,30 @@
+*target*
+*.jar
+*.war
+*.ear
+*.class
+
+# eclipse specific git ignore
+*.pydevproject
+.project
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
 /.gradle/
 /.nb-gradle/private/
 /.nb-gradle/profiles/private/
@@ -124,3 +151,4 @@
 *.jnilib
 *.dylib
 /sdk/dist/
+*.class
