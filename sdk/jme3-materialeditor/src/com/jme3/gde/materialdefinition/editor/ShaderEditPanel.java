@@ -6,14 +6,11 @@
 package com.jme3.gde.materialdefinition.editor;
 
 import com.jme3.gde.materialdefinition.icons.Icons;
-import com.jme3.shader.Shader;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
@@ -51,12 +48,13 @@ public class ShaderEditPanel extends JPanel {
             }
 
             public void keyPressed(KeyEvent e) {
-                if ((e.getKeyCode() == KeyEvent.VK_S) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
-                    saveCurrent();
-                }
+               
             }
 
             public void keyReleased(KeyEvent e) {
+                if ((e.getKeyCode() == KeyEvent.VK_S) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                    saveCurrent();
+                }
             }
         });
     }
@@ -157,15 +155,15 @@ public class ShaderEditPanel extends JPanel {
         shaderEditorPane.setText(org.openide.util.NbBundle.getMessage(ShaderEditPanel.class, "ShaderEditPanel.shaderEditorPane.text")); // NOI18N
         jScrollPane1.setViewportView(shaderEditorPane);
 
-        header.setBackground(java.awt.SystemColor.activeCaption);
+        header.setBackground(javax.swing.UIManager.getDefaults().getColor("TabbedPane.focus"));
         header.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
+        headerText.setBackground(javax.swing.UIManager.getDefaults().getColor("TabbedPane.focus"));
         headerText.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
         headerText.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         headerText.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/jme3/gde/materialdefinition/icons/fragment.png"))); // NOI18N
         org.openide.awt.Mnemonics.setLocalizedText(headerText, org.openide.util.NbBundle.getMessage(ShaderEditPanel.class, "ShaderEditPanel.headerText.text")); // NOI18N
 
-        closeButton.setBackground(java.awt.SystemColor.activeCaption);
         closeButton.setFont(new java.awt.Font("Tahoma", 1, 8)); // NOI18N
         closeButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/jme3/gde/materialdefinition/icons/out.png"))); // NOI18N
         org.openide.awt.Mnemonics.setLocalizedText(closeButton, org.openide.util.NbBundle.getMessage(ShaderEditPanel.class, "ShaderEditPanel.closeButton.text")); // NOI18N
@@ -182,9 +180,9 @@ public class ShaderEditPanel extends JPanel {
         headerLayout.setHorizontalGroup(
             headerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(headerLayout.createSequentialGroup()
-                .addComponent(headerText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(headerText, javax.swing.GroupLayout.DEFAULT_SIZE, 613, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(closeButton))
+                .addComponent(closeButton, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
         headerLayout.setVerticalGroup(
             headerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
