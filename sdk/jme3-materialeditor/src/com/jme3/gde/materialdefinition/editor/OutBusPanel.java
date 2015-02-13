@@ -33,20 +33,16 @@ public class OutBusPanel extends DraggablePanel implements ComponentListener, Se
 
     private Color color = new Color(220, 220, 70);
     private String name = "";
-    private InnerPanel panel;
-    private MatPanel preview;
-    private Shader.ShaderType type;
+    private final InnerPanel panel;
+    private final MatPanel preview;
+    private final Shader.ShaderType type;
 
     public OutBusPanel(String name, Shader.ShaderType type) {
-        this(name);
+        super(true);
         this.type = type;
         if (type == Shader.ShaderType.Fragment) {
             this.color = new Color(114, 200, 255);
         }
-    }
-
-    private OutBusPanel(String name) {
-        super(true);
         setBounds(0, 0, 300, 50);
         JLabel title = new JLabel();
         this.name = name;
@@ -96,7 +92,11 @@ public class OutBusPanel extends DraggablePanel implements ComponentListener, Se
         });
         
     }
-
+    
+    public Shader.ShaderType getType(){
+        return type;
+    }
+    
     @Override
     protected void paintComponent(Graphics g1) {
         Graphics2D g = (Graphics2D) g1;
@@ -118,8 +118,8 @@ public class OutBusPanel extends DraggablePanel implements ComponentListener, Se
             g.fillPolygon(p2);
         }
 
-        Color c1 = new Color(100, 100, 100, 255);
-        Color c2 = new Color(100, 100, 100, 100);
+        Color c1 = new Color(50, 50, 50, 255);
+        Color c2 = new Color(50, 50, 50, 80);
         g.setPaint(new GradientPaint(0, 0, c1, width, 0, c2));
         g.fillPolygon(p);
         g.fillRect(0, 10, 3, getHeight() - 20);
@@ -236,6 +236,7 @@ public class OutBusPanel extends DraggablePanel implements ComponentListener, Se
         boolean dragging = false;
 
         public InnerPanel() {
+            this.shaderType = OutBusPanel.this.type;            
             setOpaque(false);
             setNode(OutBusPanel.this);
             setParamType(Dot.ParamType.Both);
