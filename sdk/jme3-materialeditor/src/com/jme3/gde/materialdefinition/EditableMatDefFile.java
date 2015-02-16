@@ -61,12 +61,9 @@ public class EditableMatDefFile {
     private TechniqueBlock currentTechnique;
     private MaterialDef materialDef;
     private ProjectAssetManager assetManager;
-//    MatParamTopComponent matParamComponent;
     private ShaderGenerator glsl100;
-    private ShaderGenerator glsl150;
-    private final String selectedTechnique = "Default";
-    private final static String GLSL100 = "GLSL100";
-    private final static String GLSL150 = "GLSL150";
+    private ShaderGenerator glsl150;    
+    private final static String GLSL100 = "GLSL100";    
     private Lookup lookup;
     private boolean loaded = false;
     private boolean dirty = false;
@@ -137,7 +134,9 @@ public class EditableMatDefFile {
             }
         }
         if (materialDef != null && !matParseError) {
-            currentTechnique = matDefStructure.getTechniques().get(0);
+            if(currentTechnique == null){
+                currentTechnique = matDefStructure.getTechniques().get(0);
+            }
             registerListener(matDefStructure);
 
             obj.getLookupContents().add(matDefStructure);
@@ -170,7 +169,7 @@ public class EditableMatDefFile {
 
     public String getShaderCode(String version, Shader.ShaderType type) {
         try {
-            material.selectTechnique("Default", SceneApplication.getApplication().getRenderManager());
+            material.selectTechnique(currentTechnique.getName(), SceneApplication.getApplication().getRenderManager());
             Shader s;
             if (version.equals(GLSL100)) {
                 glsl100.initialize(material.getActiveTechnique());
@@ -194,6 +193,10 @@ public class EditableMatDefFile {
     public TechniqueBlock getCurrentTechnique() {
         return currentTechnique;
     }
+    
+    public void setCurrentTechnique(TechniqueBlock tech){
+        this.currentTechnique = tech;
+    }
 
     public MatDefBlock getMatDefStructure() {
         return matDefStructure;
@@ -206,7 +209,7 @@ public class EditableMatDefFile {
         material = new Material(materialDef);
 
         try {
-            material.selectTechnique("Default", SceneApplication.getApplication().getRenderManager());
+            //material.selectTechnique("Default", SceneApplication.getApplication().getRenderManager());
             if (matToRemove != null) {
                 for (MatParam matParam : matToRemove.getParams()) {
                     try {
@@ -339,5 +342,24 @@ public class EditableMatDefFile {
             Logger.getLogger(EditableMatDefFile.class.getName()).log(Level.SEVERE, ex.getMessage());
         }
         updateLookupWithMaterialData(obj);
+    }
+    
+    public void cleanup(){
+        if (matDefStructure != null) {
+            obj.getLookupContents().remove(matDefStructure);
+            matDefStructure = null;
+        }
+        if (materialDef != null) {
+            obj.getLookupContents().remove(materialDef);
+            materialDef = null;
+        }
+        if (material != null) {
+            obj.getLookupContents().remove(material);
+            matToRemove = material;
+            material = null;
+        }
+        
+        setCurrentTechnique(null);
+        setLoaded(false);
     }
 }
