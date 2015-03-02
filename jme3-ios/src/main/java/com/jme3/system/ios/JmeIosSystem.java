@@ -31,14 +31,11 @@
  */
 package com.jme3.system.ios;
 
-import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioRenderer;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeContext;
 import com.jme3.system.JmeSystemDelegate;
 import com.jme3.system.NullContext;
-import com.jme3.texture.Image;
-import com.jme3.texture.image.ImageRaster;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
@@ -52,18 +49,13 @@ import java.util.logging.Logger;
 public class JmeIosSystem extends JmeSystemDelegate {
 
     @Override
+    public URL getPlatformAssetConfigURL() {
+        return Thread.currentThread().getContextClassLoader().getResource("com/jme3/asset/IOS.cfg");
+    }
+    
+    @Override
     public void writeImageFile(OutputStream outStream, String format, ByteBuffer imageData, int width, int height) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public AssetManager newAssetManager(URL configFile) {
-        return new IosAssetManager(configFile);
-    }
-
-    @Override
-    public AssetManager newAssetManager() {
-        return new IosAssetManager();
     }
 
     @Override
@@ -104,11 +96,6 @@ public class JmeIosSystem extends JmeSystemDelegate {
     public void initialize(AppSettings settings) {
         Logger.getLogger("").addHandler(new IosLogHandler());
 //                throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public ImageRaster createImageRaster(Image image, int slice) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override

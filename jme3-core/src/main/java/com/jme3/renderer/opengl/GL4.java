@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 jMonkeyEngine
+ * Copyright (c) 2009-2014 jMonkeyEngine
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,11 +29,18 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package com.jme3.renderer.opengl;
 
-package jme3tools.converters;
+import java.nio.IntBuffer;
 
-import java.util.Map;
-
-public interface Converter<T> {
-    public T convert(T input, Map<String, String> params);
+/**
+ * GL functions only available on vanilla desktop OpenGL 3.0.
+ * 
+ * @author Kirill Vainer
+ */
+public interface GL4 extends GL3 {
+    public static final int GL_TESS_CONTROL_SHADER=0x8E87;
+    public static final int GL_TESS_EVALUATION_SHADER=0x8E88;
+    public static final int GL_PATCHES=0xE;
+    public void glPatchParameter(int count);
 }
