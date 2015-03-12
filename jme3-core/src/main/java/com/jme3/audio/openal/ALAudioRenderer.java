@@ -989,7 +989,9 @@ public class ALAudioRenderer implements AudioRenderer, Runnable {
             if (src.getStatus() == Status.Playing) {
                 return;
             } else if (src.getStatus() == Status.Stopped) {
-                assert src.getChannel() != -1;
+                //Assertion removed as it seems it's not possible to have 
+                //something different than =1 when first playing an AudioNode
+                // assert src.getChannel() != -1;
                 
                 // allocate channel to this source
                 int index = newChannel();
@@ -1130,6 +1132,7 @@ public class ALAudioRenderer implements AudioRenderer, Runnable {
             ib.position(0).limit(1);
             ib.put(id).flip();
             efx.alDeleteFilters(1, ib);
+            filter.resetObject();
         }
     }
 
