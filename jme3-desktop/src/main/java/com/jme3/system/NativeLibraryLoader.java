@@ -31,11 +31,7 @@
  */
 package com.jme3.system;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -148,8 +144,22 @@ public final class NativeLibraryLoader {
         registerNativeLibrary("lwjgl3", Platform.Linux64, "native/linux/liblwjgl.so");
         registerNativeLibrary("lwjgl3", Platform.MacOSX32, "native/macosx/liblwjgl.dylib");
         registerNativeLibrary("lwjgl3", Platform.MacOSX64, "native/macosx/liblwjgl.dylib");
-        registerNativeLibrary("lwjgl3", Platform.Windows32, "native/windows/jemalloc32.dll");
-        registerNativeLibrary("lwjgl3", Platform.Windows64, "native/windows/jemalloc.dll");
+
+        // GLFW for LWJGL 3.x
+        registerNativeLibrary("glfw-lwjgl3", Platform.Windows32, "native/windows/glfw32.dll");
+        registerNativeLibrary("glfw-lwjgl3", Platform.Windows64, "native/windows/glfw.dll");
+        registerNativeLibrary("glfw-lwjgl3", Platform.Linux32, "native/linux/libglfw32.so");
+        registerNativeLibrary("glfw-lwjgl3", Platform.Linux64, "native/linux/libglfw.so");
+        registerNativeLibrary("glfw-lwjgl3", Platform.MacOSX32, "native/macosx/libglfw.dylib");
+        registerNativeLibrary("glfw-lwjgl3", Platform.MacOSX64, "native/macosx/libglfw.dylib");
+
+        // jemalloc for LWJGL 3.x
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.Windows32, "native/windows/jemalloc32.dll");
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.Windows64, "native/windows/jemalloc.dll");
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.Linux32, "native/linux/libjemalloc32.so");
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.Linux64, "native/linux/libjemalloc.so");
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.MacOSX32, "native/macosx/libjemalloc.dylib");
+        registerNativeLibrary("jemalloc-lwjgl3", Platform.MacOSX64, "native/macosx/libjemalloc.dylib");
 
         // OpenAL for LWJGL 3.x
         // For OSX: Need to add lib prefix when extracting
@@ -479,7 +489,7 @@ public final class NativeLibraryLoader {
         if (url == null) {
             return;
         }
-        
+
         String loadedAsFileName;
         if (library.getExtractedAsName() != null) {
             loadedAsFileName = library.getExtractedAsName();
@@ -526,7 +536,7 @@ public final class NativeLibraryLoader {
             throw new UnsupportedOperationException("JVM is running under "
                     + "reduced permissions. Cannot load native libraries.");
         }
-        
+
         Platform platform = JmeSystem.getPlatform();
         NativeLibrary library = nativeLibraryMap.get(new NativeLibrary.Key(name, platform));
         
@@ -544,27 +554,28 @@ public final class NativeLibraryLoader {
             }
         }
         
-        String pathInJar = library.getPathInNativesJar();
-        
+        final String pathInJar = library.getPathInNativesJar();
+
         if (pathInJar == null) {
             // This platform does not require the native library to be loaded.
             return;
         }
         
-        String fileNameInJar;
+        final String fileNameInJar;
+
         if (pathInJar.contains("/")) {
             fileNameInJar = pathInJar.substring(pathInJar.lastIndexOf("/") + 1);
         } else {
             fileNameInJar = pathInJar;
         }
-        
+
         URL url = Thread.currentThread().getContextClassLoader().getResource(pathInJar);
         
         if (url == null) {
             // Try the root of the classpath as well.
             url = Thread.currentThread().getContextClassLoader().getResource(fileNameInJar);
         }
-        
+
         if (url == null) {
             // Attempt to load it as a system library.
             String unmappedName = unmapLibraryName(fileNameInJar);
@@ -660,7 +671,7 @@ public final class NativeLibraryLoader {
         } finally {
             // XXX: HACK. Vary loading method based on library name..
             // lwjgl and jinput handle loading by themselves.
-            if (name.equals("lwjgl")) {
+            if (name.equals("lwjgl") || name.equals("lwjgl3")) {
                 System.setProperty("org.lwjgl.librarypath", 
                                    extactionDirectory.getAbsolutePath());
             } else if (name.equals("jinput")) {
