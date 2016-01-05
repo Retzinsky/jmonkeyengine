@@ -34,12 +34,8 @@ package com.jme3.renderer;
 import com.jme3.light.DefaultLightFilter;
 import com.jme3.light.LightFilter;
 import com.jme3.light.LightList;
-import com.jme3.material.Material;
-import com.jme3.material.MaterialDef;
-import com.jme3.material.RenderState;
-import com.jme3.material.Technique;
-import com.jme3.material.TechniqueDef;
-import com.jme3.math.*;
+import com.jme3.material.*;
+import com.jme3.math.Matrix4f;
 import com.jme3.post.SceneProcessor;
 import com.jme3.profile.AppProfiler;
 import com.jme3.profile.AppStep;
@@ -55,6 +51,7 @@ import com.jme3.shader.UniformBindingManager;
 import com.jme3.system.NullRenderer;
 import com.jme3.system.Timer;
 import com.jme3.util.SafeArrayList;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -533,7 +530,6 @@ public class RenderManager {
             lightFilter.filterLights(g, filteredLightList);
             lightList = filteredLightList;
         }
-        
 
         //if forcedTechnique we try to force it for render,
         //if it does not exists in the mat def, we check for forcedMaterial and render the geom if not null
@@ -556,7 +552,7 @@ public class RenderManager {
                 forcedRenderState = tmpRs;
 
                 //Reverted this part from revision 6197
-                //If forcedTechnique does not exists, and frocedMaterial is not set, the geom MUST NOT be rendered
+                //If forcedTechnique does not exists, and forcedMaterial is not set, the geom MUST NOT be rendered
             } else if (forcedMaterial != null) {
                 // use forced material
                 forcedMaterial.render(g, lightList, this);
@@ -641,10 +637,8 @@ public class RenderManager {
      * <p>
      * In addition to enqueuing the visible geometries, this method
      * also scenes which cast or receive shadows, by putting them into the
-     * RenderQueue's 
-     * {@link RenderQueue#addToShadowQueue(com.jme3.scene.Geometry, com.jme3.renderer.queue.RenderQueue.ShadowMode) 
-     * shadow queue}. Each Spatial which has its 
-     * {@link Spatial#setShadowMode(com.jme3.renderer.queue.RenderQueue.ShadowMode) shadow mode}
+     * RenderQueue's {@link RenderQueue#renderShadowQueue(GeometryList, RenderManager, Camera, boolean) shadow queue}.
+     * Each Spatial which has its {@link Spatial#setShadowMode(com.jme3.renderer.queue.RenderQueue.ShadowMode) shadow mode}
      * set to not off, will be put into the appropriate shadow queue, note that
      * this process does not check for frustum culling on any 
      * {@link ShadowMode#Cast shadow casters}, as they don't have to be
@@ -746,29 +740,46 @@ public class RenderManager {
     }
 
     /**
-     * Sets the light filter to use when rendering Lighted Geometries
+     * Sets the light filter to use when rendering lit Geometries.
      * 
      * @see LightFilter
-     * @param lightFilter The light filter tose. Set it to null if you want all lights to be rendered
+     * @param lightFilter The light filter. Set it to null if you want all lights to be rendered.
      */
     public void setLightFilter(LightFilter lightFilter) {
         this.lightFilter = lightFilter;
     }
 
+    /**
+     * Defines what light mode will be selected when a technique offers several light modes.
+     * @param preferredLightMode The light mode to use.
+     */
     public void setPreferredLightMode(TechniqueDef.LightMode preferredLightMode) {
         this.preferredLightMode = preferredLightMode;
     }
 
+    /**
+     * returns the preferred light mode.
+     * @return the light mode.
+     */
     public TechniqueDef.LightMode getPreferredLightMode() {
         return preferredLightMode;
     }
 
+    /**
+     * returns the number of lights used for each pass when the light mode is single pass.
+     * @return the number of lights.
+     */
     public int getSinglePassLightBatchSize() {
         return singlePassLightBatchSize;
     }
 
+    /**
+     * Sets the number of lights to use for each pass when the light mode is single pass.
+     * @param singlePassLightBatchSize the number of lights.
+     */
     public void setSinglePassLightBatchSize(int singlePassLightBatchSize) {
-        this.singlePassLightBatchSize = singlePassLightBatchSize;
+        // Ensure the batch size is no less than 1
+        this.singlePassLightBatchSize = singlePassLightBatchSize < 1 ? 1 : singlePassLightBatchSize;
     }
     
     
@@ -974,13 +985,12 @@ public class RenderManager {
      * (see {@link #renderTranslucentQueue(com.jme3.renderer.ViewPort) })</li>
      * <li>If any objects remained in the render queue, they are removed
      * from the queue. This is generally objects added to the 
-     * {@link RenderQueue#renderShadowQueue(com.jme3.renderer.queue.RenderQueue.ShadowMode, com.jme3.renderer.RenderManager, com.jme3.renderer.Camera, boolean) 
-     * shadow queue}
+     * {@link RenderQueue#renderShadowQueue(GeometryList, RenderManager, Camera, boolean) shadow queue}
      * which were not rendered because of a missing shadow renderer.</li>
      * </ul>
      * 
-     * @param vp
-     * @param tpf 
+     * @param vp View port to render
+     * @param tpf Time per frame value
      */
     public void renderViewPort(ViewPort vp, float tpf) {
         if (!vp.isEnabled()) {

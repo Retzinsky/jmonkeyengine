@@ -30,43 +30,27 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.jme3.network.service.serializer;
+package com.jme3.network.service.rmi;
 
-import com.jme3.network.HostedConnection;
-import com.jme3.network.Server;
-import com.jme3.network.message.SerializerRegistrationsMessage;
-import com.jme3.network.serializing.Serializer;
-import com.jme3.network.service.AbstractHostedService;
-import com.jme3.network.service.HostedServiceManager;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.RetentionPolicy.*;
 
 
 /**
- *
+ *  Indicates that a given method should be executed asynchronously
+ *  through the RMI service.  This must annotate the method on the
+ *  shared interface for it to have an effect.  If reliable=false
+ *  is specified then remote method invocation is done over UDP
+ *  instead of TCP, ie: unreliably... but faster.
  *
  *  @author    Paul Speed
  */
-public class ServerSerializerRegistrationsService extends AbstractHostedService {
-
-    @Override
-    protected void onInitialize( HostedServiceManager serviceManager ) {
-        // Make sure our message type is registered
-        Serializer.registerClass(SerializerRegistrationsMessage.class);
-        Serializer.registerClass(SerializerRegistrationsMessage.Registration.class);
-    }
-    
-    @Override
-    public void start() {
-        // Compile the registrations into a message we will
-        // send to all connecting clients
-        SerializerRegistrationsMessage.compile();
-    }
-    
-    @Override
-    public void connectionAdded(Server server, HostedConnection hc) {
-        // Just in case
-        super.connectionAdded(server, hc);
- 
-        // Send the client the registration information
-        hc.send(SerializerRegistrationsMessage.INSTANCE);
-    }
+@Retention(value=RUNTIME)
+@Target(value=METHOD)
+public @interface Asynchronous {
+    boolean reliable() default true;
 }
+
+

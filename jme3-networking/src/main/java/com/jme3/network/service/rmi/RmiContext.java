@@ -30,43 +30,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.jme3.network.service.serializer;
+package com.jme3.network.service.rmi;
 
 import com.jme3.network.HostedConnection;
-import com.jme3.network.Server;
-import com.jme3.network.message.SerializerRegistrationsMessage;
-import com.jme3.network.serializing.Serializer;
-import com.jme3.network.service.AbstractHostedService;
-import com.jme3.network.service.HostedServiceManager;
 
 
 /**
- *
+ *  Keeps track of the current connection performing a particular
+ *  RMI call.  RMI-based services can use this to find out which
+ *  connection is calling a particular method without having to
+ *  pass additional problematic data on the method calls.
  *
  *  @author    Paul Speed
  */
-public class ServerSerializerRegistrationsService extends AbstractHostedService {
-
-    @Override
-    protected void onInitialize( HostedServiceManager serviceManager ) {
-        // Make sure our message type is registered
-        Serializer.registerClass(SerializerRegistrationsMessage.class);
-        Serializer.registerClass(SerializerRegistrationsMessage.Registration.class);
-    }
-    
-    @Override
-    public void start() {
-        // Compile the registrations into a message we will
-        // send to all connecting clients
-        SerializerRegistrationsMessage.compile();
-    }
-    
-    @Override
-    public void connectionAdded(Server server, HostedConnection hc) {
-        // Just in case
-        super.connectionAdded(server, hc);
+public class RmiContext {
+    private static final ThreadLocal<HostedConnection> connection = new ThreadLocal<HostedConnection>();
  
-        // Send the client the registration information
-        hc.send(SerializerRegistrationsMessage.INSTANCE);
+    /**
+     *  Returns the HostedConnection that is responsible for any
+     *  RMI-related calls on this thread.
+     */   
+    public static HostedConnection getRmiConnection() {
+        return connection.get();
+    }
+    
+    static void setRmiConnection( HostedConnection conn ) {
+        connection.set(conn);
     }
 }
