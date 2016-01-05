@@ -29,44 +29,46 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package com.jme3.network.service.serializer;
-
-import com.jme3.network.HostedConnection;
-import com.jme3.network.Server;
-import com.jme3.network.message.SerializerRegistrationsMessage;
-import com.jme3.network.serializing.Serializer;
-import com.jme3.network.service.AbstractHostedService;
-import com.jme3.network.service.HostedServiceManager;
+package jme3test.network;
 
 
 /**
- *
+ *  Combines the server instance and a client instance into the
+ *  same JVM to show an example of, and to test, a pattern like
+ *  self-hosted multiplayer games.
  *
  *  @author    Paul Speed
  */
-public class ServerSerializerRegistrationsService extends AbstractHostedService {
+public class TestChatClientAndServer {
+    
+    public static void main( String... args ) throws Exception {
 
-    @Override
-    protected void onInitialize( HostedServiceManager serviceManager ) {
-        // Make sure our message type is registered
-        Serializer.registerClass(SerializerRegistrationsMessage.class);
-        Serializer.registerClass(SerializerRegistrationsMessage.Registration.class);
-    }
-    
-    @Override
-    public void start() {
-        // Compile the registrations into a message we will
-        // send to all connecting clients
-        SerializerRegistrationsMessage.compile();
-    }
-    
-    @Override
-    public void connectionAdded(Server server, HostedConnection hc) {
-        // Just in case
-        super.connectionAdded(server, hc);
+        System.out.println("Starting chat server...");    
+        TestChatServer chatServer = new TestChatServer();
+        chatServer.start();
  
-        // Send the client the registration information
-        hc.send(SerializerRegistrationsMessage.INSTANCE);
+        System.out.println("Waiting for connections on port:" + TestChatServer.PORT);
+ 
+        // Now launch a client
+
+        TestChatClient test = new TestChatClient("localhost");
+        test.setVisible(true);
+        
+        // Register a shutdown hook to get a message on the console when the
+        // app actually finishes
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run() {
+                    System.out.println("Client and server test is terminating.");
+                }
+            });
+                
+        // Keep running basically forever or until the server
+        // shuts down
+        while( chatServer.isRunning() ) {
+            synchronized (chatServer) {
+                chatServer.wait();
+            }
+        }    
     }
 }

@@ -30,43 +30,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.jme3.network.service.serializer;
-
-import com.jme3.network.HostedConnection;
-import com.jme3.network.Server;
-import com.jme3.network.message.SerializerRegistrationsMessage;
-import com.jme3.network.serializing.Serializer;
-import com.jme3.network.service.AbstractHostedService;
-import com.jme3.network.service.HostedServiceManager;
+package com.jme3.network.service.rmi;
 
 
 /**
- *
+ *  Internal type denoting the type of call to make when remotely
+ *  invoking methods.
  *
  *  @author    Paul Speed
  */
-public class ServerSerializerRegistrationsService extends AbstractHostedService {
-
-    @Override
-    protected void onInitialize( HostedServiceManager serviceManager ) {
-        // Make sure our message type is registered
-        Serializer.registerClass(SerializerRegistrationsMessage.class);
-        Serializer.registerClass(SerializerRegistrationsMessage.Registration.class);
-    }
+public enum CallType {
+    /**
+     *  Caller will block until a response is received and returned.
+     */
+    Synchronous,
     
-    @Override
-    public void start() {
-        // Compile the registrations into a message we will
-        // send to all connecting clients
-        SerializerRegistrationsMessage.compile();
-    }
+    /**
+     *  Caller does not block or wait for a response.  The other end
+     *  of the connection will also not send one.
+     */ 
+    Asynchronous,
     
-    @Override
-    public void connectionAdded(Server server, HostedConnection hc) {
-        // Just in case
-        super.connectionAdded(server, hc);
- 
-        // Send the client the registration information
-        hc.send(SerializerRegistrationsMessage.INSTANCE);
-    }
+    /**
+     *  Similar to asynchronous in that no response is expected or sent
+     *  but differs in that the call will be sent over UDP and so may
+     *  not make it to the other end.
+     */ 
+    Unreliable
 }
