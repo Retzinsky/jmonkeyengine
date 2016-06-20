@@ -50,6 +50,7 @@ import com.jme3.material.RenderState.StencilOperation;
 import com.jme3.material.RenderState.TestFunction;
 import com.jme3.math.ClipRectangle;
 import com.jme3.math.ColorRGBA;
+import com.jme3.opencl.OpenCLObjectManager;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
@@ -575,6 +576,7 @@ public final class GLRenderer implements Renderer {
     public void cleanup() {
         logger.log(Level.FINE, "Deleting objects and invalidating state");
         objManager.deleteAllObjects(this);
+        OpenCLObjectManager.getInstance().deleteAllObjects();
         statistics.clearMemory();
         invalidateState();
     }
@@ -1017,6 +1019,7 @@ public final class GLRenderer implements Renderer {
 
     public void postFrame() {
         objManager.deleteUnused(this);
+        OpenCLObjectManager.getInstance().deleteUnusedObjects();
         gl.resetStats();
     }
 
