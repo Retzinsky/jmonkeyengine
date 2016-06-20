@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -30,7 +31,7 @@ import java.util.List;
  * applications that are started via TestsHarness Activity.
  * @author iwgeric
  */
-public class MainActivity extends Activity implements OnItemClickListener, View.OnClickListener, TextWatcher {
+public class MainActivity extends AppCompatActivity implements OnItemClickListener, View.OnClickListener, TextWatcher {
     private static final String TAG = "MainActivity";
 
     /**
@@ -65,6 +66,12 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
      */
     public static final String ENABLE_KEY_EVENTS = "Enable_Key_Events";
 
+    /**
+     * Static String to pass the key for the setting for verbose logging to the
+     * savedInstanceState Bundle.
+     */
+    public static final String VERBOSE_LOGGING = "Verbose_Logging";
+
     /* Fields to contain the current position and display contents of the spinner */
     private int currentPosition = 0;
     private String currentSelection = "";
@@ -89,6 +96,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
     private boolean enableMouseEvents = true;
     private boolean enableJoystickEvents = false;
     private boolean enableKeyEvents = true;
+    private boolean verboseLogging = false;
 
 
     /**
@@ -99,7 +107,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
         super.onCreate(savedInstanceState);
 
         if (savedInstanceState != null) {
-            Log.i(TAG, "Restoring selections in onCreate: "
+            Log.d(TAG, "Restoring selections in onCreate: "
                     + "position: " + savedInstanceState.getInt(SELECTED_LIST_POSITION, 0)
                     + "class: " + savedInstanceState.getString(SELECTED_APP_CLASS)
             );
@@ -108,6 +116,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
             enableMouseEvents = savedInstanceState.getBoolean(ENABLE_MOUSE_EVENTS, true);
             enableJoystickEvents = savedInstanceState.getBoolean(ENABLE_JOYSTICK_EVENTS, false);
             enableKeyEvents = savedInstanceState.getBoolean(ENABLE_KEY_EVENTS, true);
+            verboseLogging = savedInstanceState.getBoolean(VERBOSE_LOGGING, true);
         }
 
 
@@ -134,7 +143,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
          * name and super class.
          */
 
-        Log.i(TAG, "Composing Test list...");
+        Log.d(TAG, "Composing Test list...");
 
         ApplicationInfo ai = this.getApplicationInfo();
         String classPath = ai.sourceDir;
@@ -171,12 +180,12 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
         );
 
         /* Set the resource id for selected and non selected backgrounds */
-        Log.i(TAG, "Setting Adapter Background Resource IDs");
+        Log.d(TAG, "Setting Adapter Background Resource IDs");
         arrayAdapter.setSelectedBackgroundResource(R.drawable.selected);
         arrayAdapter.setNonSelectedBackgroundResource(R.drawable.nonselected);
 
         /* Attach the Adapter to the spinner */
-        Log.i(TAG, "Setting ListView Adapter");
+        Log.d(TAG, "Setting ListView Adapter");
         listClasses.setAdapter(arrayAdapter);
 
         /* Set initial selection for the list */
@@ -211,7 +220,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
     public void onClick(View view) {
         if (view.equals(btnOK)) {
             /* Get selected class, pack it in the intent and start the test app */
-            Log.i(TAG, "User selected OK for class: " + currentSelection);
+            Log.d(TAG, "User selected OK for class: " + currentSelection);
             Intent intent = new Intent(this, TestActivity.class);
 //            intent.putExtra(SELECTED_APP_CLASS, currentSelection);
 //            intent.putExtra(ENABLE_MOUSE_EVENTS, enableMouseEvents);
@@ -232,12 +241,15 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
             args.putBoolean(MainActivity.ENABLE_KEY_EVENTS, enableKeyEvents);
 //            Log.d(TestActivity.class.getSimpleName(), "KeyEnabled="+enableKeyEvents);
 
+            args.putBoolean(MainActivity.VERBOSE_LOGGING, verboseLogging);
+//            Log.d(TestActivity.class.getSimpleName(), "VerboseLogging="+verboseLogging);
+
             intent.putExtras(args);
 
             startActivity(intent);
         } else if (view.equals(btnCancel)) {
             /* Exit */
-            Log.i(TAG, "User selected Cancel");
+            Log.d(TAG, "User selected Cancel");
             finish();
         }
     }
@@ -255,14 +267,14 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
             /* check to see if the class contains any of the exlusion strings */
             for (int i = 0; i < exclusions.size(); i++) {
                 if (className.contains(exclusions.get(i))) {
-                    Log.i(TAG, "Skipping Class " + className + ". Includes exclusion string: " + exclusions.get(i) + ".");
+                    Log.d(TAG, "Skipping Class " + className + ". Includes exclusion string: " + exclusions.get(i) + ".");
                     include = false;
                     break;
                 }
             }
         } else {
             include = false;
-            Log.i(TAG, "Skipping Class " + className + ". Not in the root package: " + rootPackage + ".");
+            Log.d(TAG, "Skipping Class " + className + ". Not in the root package: " + rootPackage + ".");
         }
         return include;
     }
@@ -275,17 +287,20 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
     private boolean checkClassType(String className) {
         boolean include = true;
         try {
-            Class<?> clazz = (Class<?>)Class.forName(className);
+            Class<?> clazz = (Class<?>) Class.forName(className);
             if (Application.class.isAssignableFrom(clazz)) {
-                Log.i(TAG, "Class " + className + " is a jME Application");
+                Log.d(TAG, "Class " + className + " is a jME Application");
             } else {
                 include = false;
-                Log.i(TAG, "Skipping Class " + className + ". Not a jME Application");
+                Log.d(TAG, "Skipping Class " + className + ". Not a jME Application");
             }
 
+        } catch (NoClassDefFoundError ncdf) {
+            include = false;
+            Log.d(TAG, "Skipping Class " + className + ". No Class Def found.");
         } catch (ClassNotFoundException cnfe) {
             include = false;
-            Log.i(TAG, "Skipping Class " + className + ". Class not found.");
+            Log.d(TAG, "Skipping Class " + className + ". Class not found.");
         }
         return include;
     }
@@ -309,11 +324,13 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
-        Log.i(TAG, "Saving selections in onSaveInstanceState: "
+        Log.d(TAG, "Saving selections in onSaveInstanceState: "
                 + "position: " + currentPosition + ", "
                 + "class: " + currentSelection + ", "
                 + "mouseEvents: " + enableMouseEvents + ", "
                 + "joystickEvents: " + enableJoystickEvents + ", "
+                + "keyEvents: " + enableKeyEvents + ", "
+                + "VerboseLogging: " + verboseLogging + ", "
         );
         // Save current selections to the savedInstanceState.
         // This bundle will be passed to onCreate if the process is
@@ -322,6 +339,8 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
         savedInstanceState.putInt(SELECTED_LIST_POSITION, currentPosition);
         savedInstanceState.putBoolean(ENABLE_MOUSE_EVENTS, enableMouseEvents);
         savedInstanceState.putBoolean(ENABLE_JOYSTICK_EVENTS, enableJoystickEvents);
+        savedInstanceState.putBoolean(ENABLE_KEY_EVENTS, enableKeyEvents);
+        savedInstanceState.putBoolean(VERBOSE_LOGGING, verboseLogging);
     }
 
     @Override
@@ -341,7 +360,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
     }
 
     public void onTextChanged(CharSequence cs, int startPos, int beforePos, int count) {
-        Log.i(TAG, "onTextChanged with cs: " + cs + ", startPos: " + startPos + ", beforePos: " + beforePos + ", count: " + count);
+        Log.d(TAG, "onTextChanged with cs: " + cs + ", startPos: " + startPos + ", beforePos: " + beforePos + ", count: " + count);
         arrayAdapter.getFilter().filter(cs.toString());
         setSelection(-1);
     }
@@ -369,7 +388,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
 
         item = menu.findItem(R.id.optionMouseEvents);
         if (item != null) {
-            Log.i(TAG, "Found EnableMouseEvents menu item");
+            Log.d(TAG, "Found EnableMouseEvents menu item");
             if (enableMouseEvents) {
                 item.setTitle(R.string.strOptionDisableMouseEventsTitle);
             } else {
@@ -379,7 +398,7 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
 
         item = menu.findItem(R.id.optionJoystickEvents);
         if (item != null) {
-            Log.i(TAG, "Found EnableJoystickEvents menu item");
+            Log.d(TAG, "Found EnableJoystickEvents menu item");
             if (enableJoystickEvents) {
                 item.setTitle(R.string.strOptionDisableJoystickEventsTitle);
             } else {
@@ -389,11 +408,21 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
 
         item = menu.findItem(R.id.optionKeyEvents);
         if (item != null) {
-            Log.i(TAG, "Found EnableKeyEvents menu item");
+            Log.d(TAG, "Found EnableKeyEvents menu item");
             if (enableKeyEvents) {
                 item.setTitle(R.string.strOptionDisableKeyEventsTitle);
             } else {
                 item.setTitle(R.string.strOptionEnableKeyEventsTitle);
+            }
+        }
+
+        item = menu.findItem(R.id.optionVerboseLogging);
+        if (item != null) {
+            Log.d(TAG, "Found EnableVerboseLogging menu item");
+            if (verboseLogging) {
+                item.setTitle(R.string.strOptionDisableVerboseLoggingTitle);
+            } else {
+                item.setTitle(R.string.strOptionEnableVerboseLoggingTitle);
             }
         }
 
@@ -405,15 +434,19 @@ public class MainActivity extends Activity implements OnItemClickListener, View.
         switch (item.getItemId()) {
             case R.id.optionMouseEvents:
                 enableMouseEvents = !enableMouseEvents;
-                Log.i(TAG, "enableMouseEvents set to: " + enableMouseEvents);
+                Log.d(TAG, "enableMouseEvents set to: " + enableMouseEvents);
                 break;
             case R.id.optionJoystickEvents:
                 enableJoystickEvents = !enableJoystickEvents;
-                Log.i(TAG, "enableJoystickEvents set to: " + enableJoystickEvents);
+                Log.d(TAG, "enableJoystickEvents set to: " + enableJoystickEvents);
                 break;
             case R.id.optionKeyEvents:
                 enableKeyEvents = !enableKeyEvents;
-                Log.i(TAG, "enableKeyEvents set to: " + enableKeyEvents);
+                Log.d(TAG, "enableKeyEvents set to: " + enableKeyEvents);
+                break;
+            case R.id.optionVerboseLogging:
+                verboseLogging = !verboseLogging;
+                Log.d(TAG, "verboseLogging set to: " + verboseLogging);
                 break;
             default:
                 return super.onOptionsItemSelected(item);
