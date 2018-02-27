@@ -31,16 +31,34 @@
  */
 package com.jme3.scene;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.CloneableSmartAsset;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.collision.Collidable;
-import com.jme3.export.*;
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
 import com.jme3.light.Light;
 import com.jme3.light.LightList;
 import com.jme3.material.MatParamOverride;
 import com.jme3.material.Material;
-import com.jme3.math.*;
+import com.jme3.math.Matrix3f;
+import com.jme3.math.Matrix4f;
+import com.jme3.math.Quaternion;
+import com.jme3.math.Transform;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -48,14 +66,11 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.renderer.queue.RenderQueue.ShadowMode;
 import com.jme3.scene.control.Control;
+import com.jme3.util.SafeArrayList;
+import com.jme3.util.TempVars;
 import com.jme3.util.clone.Cloner;
 import com.jme3.util.clone.IdentityCloneFunction;
 import com.jme3.util.clone.JmeCloneable;
-import com.jme3.util.SafeArrayList;
-import com.jme3.util.TempVars;
-import java.io.IOException;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * <code>Spatial</code> defines the base class for scene graph nodes. It
@@ -1095,6 +1110,33 @@ public abstract class Spatial implements Savable, Cloneable, Collidable, Cloneab
      */
     public void setLocalTranslation(float x, float y, float z) {
         this.localTransform.setTranslation(x, y, z);
+        setTransformRefresh();
+    }
+    
+    /**
+     * <code>setLocalTranslationX</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationX(float x) {
+        this.localTransform.setTranslationX(x);
+        setTransformRefresh();
+    }
+
+    /**
+     * <code>setLocalTranslationY</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationY(float y) {
+        this.localTransform.setTranslationY(y);
+        setTransformRefresh();
+    }
+
+    /**
+     * <code>setLocalTranslationZ</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationZ(float z) {
+        this.localTransform.setTranslationZ(z);
         setTransformRefresh();
     }
 

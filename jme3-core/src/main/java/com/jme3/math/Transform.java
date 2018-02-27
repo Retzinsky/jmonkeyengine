@@ -31,8 +31,13 @@
  */
 package com.jme3.math;
 
-import com.jme3.export.*;
 import java.io.IOException;
+
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
 
 /**
  * Started Date: Jul 16, 2004<br><br>
@@ -90,6 +95,39 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
      */
     public Transform setTranslation(Vector3f trans) {
         this.translation.set(trans);
+        return this;
+    }    
+    
+    /**
+     * Sets this matrix's x translation to the given value,
+     * retaining the original y and z values.
+     * @param x This matrix's new x translation.
+     * @return this
+     */
+    public Transform setTranslationX(float x) {
+        translation.setX(x);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's y translation to the given value,
+     * retaining the original x and z values.
+     * @param y This matrix's new y translation.
+     * @return this
+     */
+    public Transform setTranslationY(float y) {
+        translation.setY(y);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's z translation to the given value,
+     * retaining the original x and y values.
+     * @param z This matrix's new z translation.
+     * @return this
+     */
+    public Transform setTranslationZ(float z) {
+        translation.setZ(z);
         return this;
     }
 
