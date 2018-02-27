@@ -1,8 +1,32 @@
+*target*
 **/nbproject/private/
-**/.classpath
-**/.settings
-**/.project
-**/out
+*.jar
+*.war
+*.ear
+*.class
+*.orig
+
+# eclipse specific git ignore
+*.pydevproject
+.project
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
 /.gradle/
 /.nb-gradle/
 /.idea/
@@ -18,14 +42,11 @@
 *.jnilib
 *.dylib
 *.iml
-.gradletasknamecache
 .DS_Store
 /jme3-core/src/main/resources/com/jme3/system/version.properties
 /jme3-*/build/
 /jme3-bullet-native/bullet.zip
-/jme3-bullet-native/bullet3.zip
 /jme3-bullet-native/bullet-2.82-r2704/
-/jme3-bullet-native/bullet3-2.83.7/
 /jme3-android-native/openal-soft/
 /jme3-android-native/OpenALSoft.zip
 /jme3-android-native/src/native/jme_decode/STBI/
@@ -39,9 +60,3 @@
 !/jme3-bullet-native/libs/native/osx/x86_64/libbulletjme.dylib
 !/jme3-bullet-native/libs/native/linux/x86/libbulletjme.so
 !/jme3-bullet-native/libs/native/linux/x86_64/libbulletjme.so
-!/jme3-vr/src/main/resources/**/*.dylib
-!/jme3-vr/src/main/resources/**/*.so
-!/jme3-vr/src/main/resources/**/*.so.dbg
-!/jme3-vr/src/main/resources/**/*.dll
-!/jme3-vr/src/main/resources/**/*.pdb
-/buildMaven.bat
