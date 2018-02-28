@@ -31,6 +31,11 @@
  */
 package com.jme3.scene;
 
+import java.io.IOException;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetNotFoundException;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.collision.Collidable;
@@ -43,13 +48,9 @@ import com.jme3.material.Material;
 import com.jme3.math.Matrix4f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.util.TempVars;
 import com.jme3.util.clone.Cloner;
 import com.jme3.util.clone.IdentityCloneFunction;
-import com.jme3.util.TempVars;
-import java.io.IOException;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * <code>Geometry</code> defines a leaf node of the scene graph. The leaf node
@@ -73,6 +74,7 @@ public class Geometry extends Spatial {
      */
     protected boolean ignoreTransform = false;
     protected transient Matrix4f cachedWorldMat = new Matrix4f();
+    private ClipState clipState;
 
     /**
      * Specifies which {@link GeometryGroupNode} this <code>Geometry</code>
@@ -279,6 +281,44 @@ public class Geometry extends Spatial {
     public void updateModelBound() {
         mesh.updateBound();
         setBoundRefresh();
+    }
+    
+    @Override
+    public final void enableClipping(final int clipX, final int clipY, final int clipW, final int clipH)
+    {
+        // If there's no clip state object right now.
+        if (clipState == null)
+        {
+            // Instantiate one.
+            clipState = new ClipState();
+        }
+
+        // Set clipping parameters. ClipState handles invalid parameters itself.
+        // Clipping will not be enabled if for example the supplied width or
+        // height are negative or zero.
+        clipState.enable(clipX, clipY, clipW, clipH);
+    }
+    
+    @Override
+    public final void disableClipping()
+    {
+        // If there's a clip state object.
+        if (clipState != null)
+        {
+            // Disable it.
+            clipState.disable();
+        }
+    }
+	
+	/**
+     * Gets the {@link ClipState} object containing the desired clipping
+     * parameters of this Geometry.
+     *
+     * @return the clip state
+     */
+    public final ClipState getClipState()
+    {
+        return clipState;
     }
 
     /**

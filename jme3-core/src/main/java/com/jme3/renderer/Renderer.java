@@ -31,8 +31,13 @@
  */
 package com.jme3.renderer;
 
+import java.nio.ByteBuffer;
+import java.util.EnumMap;
+import java.util.EnumSet;
+
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.scene.ClipState;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.shader.Shader;
@@ -42,9 +47,6 @@ import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.util.NativeObject;
-import java.nio.ByteBuffer;
-import java.util.EnumMap;
-import java.util.EnumSet;
 
 /**
  * The <code>Renderer</code> is responsible for taking rendering commands and
@@ -111,6 +113,12 @@ public interface Renderer {
      * GL calls so that the state is applied.
      */
     public void applyRenderState(RenderState state);
+
+    /** 
+     * Applies the given {@link ClipState}, making the necessary
+     * GL calls so that the state is applied.
+     */
+    public void applyClipState(ClipState state);
 
     /**
      * Set the range of the depth values for objects. All rendered
