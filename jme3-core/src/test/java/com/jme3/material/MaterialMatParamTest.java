@@ -31,31 +31,37 @@
  */
 package com.jme3.material;
 
+import static com.jme3.scene.MPOTestUtils.mpoBool;
+import static com.jme3.scene.MPOTestUtils.mpoFloat;
+import static com.jme3.scene.MPOTestUtils.mpoInt;
+import static com.jme3.scene.MPOTestUtils.mpoMatrix4Array;
+import static com.jme3.scene.MPOTestUtils.mpoTexture2D;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.light.LightList;
 import com.jme3.math.Matrix4f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
+import com.jme3.shader.DefineList;
 import com.jme3.shader.Shader;
 import com.jme3.shader.Uniform;
 import com.jme3.shader.VarType;
-import java.util.Arrays;
-import java.util.HashSet;
-import org.junit.Assert;
-import org.junit.Test;
-
-import static com.jme3.scene.MPOTestUtils.*;
-import com.jme3.scene.Node;
-import com.jme3.shader.DefineList;
 import com.jme3.system.NullRenderer;
 import com.jme3.system.TestUtil;
 import com.jme3.texture.Image.Format;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
-import java.util.ArrayList;
-import static org.junit.Assert.assertEquals;
-import org.junit.Before;
 
 /**
  * Validates {@link MatParam}s.
@@ -65,7 +71,7 @@ import org.junit.Before;
 public class MaterialMatParamTest {
 
     private static final HashSet<String> IGNORED_UNIFORMS = new HashSet<String>(
-            Arrays.asList(new String[]{"m_ParallaxHeight", "m_Shininess", "m_BackfaceShadows"}));
+            Arrays.asList(new String[]{"m_ParallaxHeight", "m_Shininess", "m_BackfaceShadows", "m_FlashValue"}));
 
     @Test
     public void testBoolMpoOnly() {
