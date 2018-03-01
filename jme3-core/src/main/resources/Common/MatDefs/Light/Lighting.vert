@@ -10,7 +10,9 @@
 uniform vec4 m_Ambient;
 uniform vec4 m_Diffuse;
 uniform vec4 m_Specular;
+uniform vec4 m_Flash;
 uniform float m_Shininess;
+uniform float m_FlashValue;
 
 uniform vec4 g_LightColor;
 uniform vec4 g_LightPosition;
@@ -25,6 +27,12 @@ varying vec2 texCoord;
 varying vec3 AmbientSum;
 varying vec4 DiffuseSum;
 varying vec3 SpecularSum;
+
+#ifdef FLASH_COLOR
+  varying vec3 AmbientSumFlash;
+  varying vec4 DiffuseSumFlash;
+  varying vec3 SpecularSumFlash;
+#endif
 
 attribute vec3 inPosition;
 attribute vec2 inTexCoord;
@@ -148,6 +156,15 @@ void main(){
     #ifdef VERTEX_COLOR
       AmbientSum *= inColor.rgb;
       DiffuseSum *= inColor;
+    #endif
+
+    #ifdef FLASH_COLOR
+      AmbientSumFlash = (m_Flash * g_AmbientLightColor).rgb;
+      DiffuseSumFlash = m_Flash * vec4(lightColor.rgb, 1.0);
+      SpecularSumFlash = (m_Flash * lightColor).rgb;
+      AmbientSum = mix(AmbientSum, AmbientSumFlash, m_FlashValue);
+      DiffuseSum = mix(DiffuseSum, DiffuseSumFlash, m_FlashValue);
+      SpecularSum = mix(SpecularSum, SpecularSumFlash, m_FlashValue);
     #endif
 
     #ifdef VERTEX_LIGHTING
