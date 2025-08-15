@@ -31,6 +31,13 @@
  */
 package com.jme3.scene;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.bounding.BoundingBox;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.collision.Collidable;
@@ -40,12 +47,6 @@ import com.jme3.export.JmeImporter;
 import com.jme3.material.Material;
 import com.jme3.util.SafeArrayList;
 import com.jme3.util.clone.Cloner;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * <code>Node</code> defines an internal node of a scene graph. The internal
@@ -572,6 +573,36 @@ public class Node extends Spatial {
         super.setLodLevel(lod);
         for (Spatial child : children.getArray()) {
             child.setLodLevel(lod);
+        }
+    }    
+    
+    @Override
+    public final void enableClipping(final int clipX, final int clipY, final int clipW, final int clipH)
+    {
+        // If there are children.
+        if (children != null)
+        {
+            // Iterate over children.
+            for (int i = 0; i < children.size(); i++)
+            {
+                // Enable clipping on child.
+                children.get(i).enableClipping(clipX, clipY, clipW, clipH);
+            }
+        }
+    }
+
+    @Override
+    public final void disableClipping()
+    {
+        // If there are children.
+        if (children != null)
+        {
+            // Iterate over children.
+            for (int i = 0; i < children.size(); i++)
+            {
+                // Disable clipping on child.
+                children.get(i).disableClipping();
+            }
         }
     }
 

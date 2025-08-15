@@ -92,7 +92,8 @@ public class Geometry extends Spatial {
     // a Morph target that will be used to merge all targets that
     // can't be handled on the cpu on each frame.
     private MorphTarget fallbackMorphTarget;
-    private int nbSimultaneousGPUMorph = -1;    
+    private int nbSimultaneousGPUMorph = -1;
+    private ClipState clipState;
     
     /**
      * An offset for when a transparent/translucent geometry is sorted.
@@ -743,6 +744,44 @@ public class Geometry extends Spatial {
 
     public void setFallbackMorphTarget(MorphTarget fallbackMorphTarget) {
         this.fallbackMorphTarget = fallbackMorphTarget;
+    }
+    
+    @Override
+    public final void enableClipping(final int clipX, final int clipY, final int clipW, final int clipH)
+    {
+        // If there's no clip state object right now.
+        if (clipState == null)
+        {
+            // Instantiate one.
+            clipState = new ClipState();
+        }
+
+        // Set clipping parameters. ClipState handles invalid parameters itself.
+        // Clipping will not be enabled if for example the supplied width or
+        // height are negative or zero.
+        clipState.enable(clipX, clipY, clipW, clipH);
+    }
+    
+    @Override
+    public final void disableClipping()
+    {
+        // If there's a clip state object.
+        if (clipState != null)
+        {
+            // Disable it.
+            clipState.disable();
+        }
+    }
+	
+	/**
+     * Gets the {@link ClipState} object containing the desired clipping
+     * parameters of this Geometry.
+     *
+     * @return the clip state
+     */
+    public final ClipState getClipState()
+    {
+        return clipState;
     }
 
     @Override

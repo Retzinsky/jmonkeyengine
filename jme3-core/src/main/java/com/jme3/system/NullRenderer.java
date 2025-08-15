@@ -31,6 +31,10 @@
  */
 package com.jme3.system;
 
+import java.nio.ByteBuffer;
+import java.util.EnumMap;
+import java.util.EnumSet;
+
 import com.jme3.light.LightList;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
@@ -40,6 +44,7 @@ import com.jme3.renderer.Limits;
 import com.jme3.renderer.Renderer;
 import com.jme3.renderer.Statistics;
 import com.jme3.renderer.TextureUnitException;
+import com.jme3.scene.ClipState;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.shader.Shader;
@@ -49,10 +54,6 @@ import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.TextureImage;
-
-import java.nio.ByteBuffer;
-import java.util.EnumMap;
-import java.util.EnumSet;
 
 public class NullRenderer implements Renderer {
 
@@ -96,6 +97,9 @@ public class NullRenderer implements Renderer {
 
     @Override
     public void applyRenderState(RenderState state) {
+    }
+    
+    public void applyClipState(ClipState state) {
     }
 
     @Override
