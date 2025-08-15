@@ -31,6 +31,10 @@
  */
 package com.jme3.audio;
 
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.AssetNotFoundException;
 import com.jme3.audio.AudioData.DataType;
@@ -42,9 +46,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.util.PlaceholderAssets;
 import com.jme3.util.clone.Cloner;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * An <code>AudioNode</code> is a scene Node which can play audio assets.
@@ -83,6 +84,7 @@ public class AudioNode extends Node implements AudioSource {
     protected boolean reverbEnabled = false;
     protected float maxDistance = 200; // 200 meters
     protected float refDistance = 10; // 10 meters
+    protected float rolloffFactor = 1;
     protected Filter reverbFilter;
     private boolean directional = false;
     protected Vector3f direction = new Vector3f(0, 0, 1);
@@ -617,6 +619,37 @@ public class AudioNode extends Node implements AudioSource {
         this.refDistance = refDistance;
         if (channel >= 0)
             getRenderer().updateSourceParam(this, AudioParam.RefDistance);
+    }   
+    
+    /**
+     * @return The rolloff factor for the audio node.
+     * 
+     * @see AudioNode#setRolloffFactor(float)
+     */
+    @Override
+    public float getRolloffFactor() {
+        return rolloffFactor;
+    }
+    
+    /**
+     * Set the rolloff factor for the audio node.
+     * Does nothing if the audio node is not positional.
+     * <br>
+     * The rolloff factor determines how quickly the
+     * sound will reduce in volume as distance from the
+     * source increases.
+     * 
+     * @param rolloffFactor The rolloff factor
+     * @throws IllegalArgumentException If rolloffFactor is negative
+     */
+    public void setRolloffFactor(float rolloffFactor) {
+        if (rolloffFactor < 0) {
+            throw new IllegalArgumentException("Rolloff factor cannot be negative");
+        }
+        
+        this.rolloffFactor = rolloffFactor;
+        if (channel >= 0)
+            getRenderer().updateSourceParam(this, AudioParam.RolloffFactor);
     }
 
     /**

@@ -44,6 +44,7 @@ public enum AudioParam {
     InnerAngle,
     RefDistance,
     MaxDistance,
+    RolloffFactor,
     DryFilter,
     ReverbFilter,
     ReverbEnabled;

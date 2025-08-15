@@ -173,6 +173,14 @@ public interface AudioSource {
      * @see AudioNode#setRefDistance(float) 
      */
     public float getRefDistance();
+    
+    /**
+     * 
+     * @return The rolloff factor for the audio source.
+     * 
+     * @see AudioNode#setRolloffFactor(float)
+     */
+    public float getRolloffFactor();
 
     /**
      * @return True if the audio source is directional
