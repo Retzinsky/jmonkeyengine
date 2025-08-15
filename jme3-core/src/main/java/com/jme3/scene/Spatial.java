@@ -1181,6 +1181,33 @@ public abstract class Spatial implements Savable, Cloneable, Collidable,
     public void setLocalTranslation(float x, float y, float z) {
         this.localTransform.setTranslation(x, y, z);
         setTransformRefresh();
+    }    
+    
+    /**
+     * <code>setLocalTranslationX</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationX(float x) {
+        this.localTransform.setTranslationX(x);
+        setTransformRefresh();
+    }
+
+    /**
+     * <code>setLocalTranslationY</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationY(float y) {
+        this.localTransform.setTranslationY(y);
+        setTransformRefresh();
+    }
+
+    /**
+     * <code>setLocalTranslationZ</code> sets the local translation of this
+     * spatial.
+     */
+    public void setLocalTranslationZ(float z) {
+        this.localTransform.setTranslationZ(z);
+        setTransformRefresh();
     }
 
     /**
