@@ -52,15 +52,26 @@ public class TransparentComparator implements GeometryComparator {
     }
 
     @Override
-    public int compare(Geometry o1, Geometry o2) {
-        float d1 = distanceToCam(o1);
-        float d2 = distanceToCam(o2);
+    public final int compare(final Geometry o1, final Geometry o2)
+    {
+    	// Get the sort offsets.
+    	int s1 = o1.getSortOffset();
+    	int s2 = o2.getSortOffset();
+    	
+    	// If they're the same.
+    	if (s1 == s2)
+    	{
+    		// Get the camera distances so we can compare as normal.
+    		float d1 = distanceToCam(o1);
+    		float d2 = distanceToCam(o2);
 
-        if (d1 == d2)
-            return 0;
-        else if (d1 < d2)
-            return 1;
-        else
-            return -1;
+    		// Order back to front by distance.
+    		return (d1 == d2) ? 0 : (d1 < d2) ? 1 : -1;
+    	}
+    	else
+    	{
+    		// Order back to front by offset. Lower offset is "nearer".
+    		return (s1 < s2) ? 1 : -1;
+    	}
     }
 }
