@@ -31,13 +31,25 @@
  */
 package com.jme3.scene;
 
-import com.jme3.export.*;
+import java.io.IOException;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
+import java.nio.ShortBuffer;
+
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
 import com.jme3.math.FastMath;
 import com.jme3.renderer.Renderer;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.NativeObject;
-import java.io.IOException;
-import java.nio.*;
 
 /**
  * A <code>VertexBuffer</code> contains a particular type of geometry
@@ -225,7 +237,19 @@ public class VertexBuffer extends NativeObject implements Savable, Cloneable {
         MorphTarget10,
         MorphTarget11,
         MorphTarget12,
-        MorphTarget13,
+        MorphTarget13;
+        
+        private static final Type[] VALUES = Type.values();
+        
+        public static final int length()
+        {
+        	return VALUES.length;
+        }
+        
+        public static final Type get(final int ordinal)
+        {
+        	return VALUES[ordinal];
+        }
     }
 
     /**
@@ -250,7 +274,19 @@ public class VertexBuffer extends NativeObject implements Savable, Cloneable {
          * Mesh data is <em>not</em> sent to GPU at all. It is only
          * used by the CPU.
          */
-        CpuOnly
+        CpuOnly;
+    	
+        private static final Usage[] VALUES = Usage.values();
+        
+        public static final int length()
+        {
+        	return VALUES.length;
+        }
+        
+        public static final Usage get(final int ordinal)
+        {
+        	return VALUES[ordinal];
+        }
     }
 
     /**
@@ -299,6 +335,8 @@ public class VertexBuffer extends NativeObject implements Savable, Cloneable {
          * 4 byte integer, unsigned.
          */
         UnsignedInt(4);
+    	
+    	private static final Format[] VALUES = Format.values();
 
         private int componentSize = 0;
 
@@ -313,6 +351,16 @@ public class VertexBuffer extends NativeObject implements Savable, Cloneable {
          */
         public int getComponentSize() {
             return componentSize;
+        }
+        
+        public static final int length()
+        {
+        	return VALUES.length;
+        }
+        
+        public static final Format get(final int ordinal)
+        {
+        	return VALUES[ordinal];
         }
     }
 
