@@ -31,6 +31,11 @@
  */
 package com.jme3.scene;
 
+import java.io.IOException;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetNotFoundException;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.collision.Collidable;
@@ -47,10 +52,6 @@ import com.jme3.scene.mesh.MorphTarget;
 import com.jme3.util.TempVars;
 import com.jme3.util.clone.Cloner;
 import com.jme3.util.clone.IdentityCloneFunction;
-import java.io.IOException;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * <code>Geometry</code> defines a leaf node of the scene graph. The leaf node
@@ -92,6 +93,7 @@ public class Geometry extends Spatial {
     // can't be handled on the cpu on each frame.
     private MorphTarget fallbackMorphTarget;
     private int nbSimultaneousGPUMorph = -1;
+    private ClipState clipState;
 
     /**
      * Instantiate a <code>Geometry</code> with no name, no mesh, and no
@@ -713,6 +715,44 @@ public class Geometry extends Spatial {
 
     public void setFallbackMorphTarget(MorphTarget fallbackMorphTarget) {
         this.fallbackMorphTarget = fallbackMorphTarget;
+    }
+    
+    @Override
+    public final void enableClipping(final int clipX, final int clipY, final int clipW, final int clipH)
+    {
+        // If there's no clip state object right now.
+        if (clipState == null)
+        {
+            // Instantiate one.
+            clipState = new ClipState();
+        }
+
+        // Set clipping parameters. ClipState handles invalid parameters itself.
+        // Clipping will not be enabled if for example the supplied width or
+        // height are negative or zero.
+        clipState.enable(clipX, clipY, clipW, clipH);
+    }
+    
+    @Override
+    public final void disableClipping()
+    {
+        // If there's a clip state object.
+        if (clipState != null)
+        {
+            // Disable it.
+            clipState.disable();
+        }
+    }
+	
+	/**
+     * Gets the {@link ClipState} object containing the desired clipping
+     * parameters of this Geometry.
+     *
+     * @return the clip state
+     */
+    public final ClipState getClipState()
+    {
+        return clipState;
     }
 
     @Override
