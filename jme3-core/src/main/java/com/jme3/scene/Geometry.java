@@ -31,6 +31,11 @@
  */
 package com.jme3.scene;
 
+import java.io.IOException;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetNotFoundException;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.collision.Collidable;
@@ -47,10 +52,6 @@ import com.jme3.scene.mesh.MorphTarget;
 import com.jme3.util.TempVars;
 import com.jme3.util.clone.Cloner;
 import com.jme3.util.clone.IdentityCloneFunction;
-import java.io.IOException;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * <code>Geometry</code> defines a leaf node of the scene graph. The leaf node
@@ -91,7 +92,18 @@ public class Geometry extends Spatial {
     // a Morph target that will be used to merge all targets that
     // can't be handled on the cpu on each frame.
     private MorphTarget fallbackMorphTarget;
-    private int nbSimultaneousGPUMorph = -1;
+    private int nbSimultaneousGPUMorph = -1;    
+    
+    /**
+     * An offset for when a transparent/translucent geometry is sorted.
+     * Only those geometries with the same offset will be sorted against
+     * each other by distance. A lower offset will always be sorted
+     * "nearer" to the camera and a higher one vice-versa. Allows
+     * arbitrarily pushing or pulling geometries around in the sort order
+     * for cases when they have naturally troublesome properties in that
+     * regard. Default is zero.
+     */
+    private int sortOffset = 0;
 
     /**
      * Instantiate a <code>Geometry</code> with no name, no mesh, and no
@@ -465,6 +477,24 @@ public class Geometry extends Spatial {
         // to recompute the bound based on the geometry thus making
         // this call useless!
         //updateModelBound();
+    }
+    
+    /**
+     * @return the current sort offset.
+     */
+    public final int getSortOffset()
+    {
+    	return sortOffset;
+    }
+    
+    /**
+     * Sets the current sort offset.
+     * 
+     * @param the desired sort offset.
+     */
+    public final void setSortOffset(final int sortOffset)
+    {
+    	this.sortOffset = sortOffset;
     }
 
     @Override
