@@ -31,11 +31,17 @@
  */
 package com.jme3.math;
 
-import com.jme3.export.*;
-import com.jme3.util.TempVars;
-
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.logging.Logger;
+
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
+import com.jme3.util.TempVars;
 
 /**
  * Used to efficiently represent rotations and orientations in 3-dimensional
@@ -1132,16 +1138,30 @@ public final class Quaternion implements Savable, Cloneable, java.io.Serializabl
      */
     public Vector3f multLocal(Vector3f v) {
         float tempX, tempY;
-        tempX = w * w * v.x + 2 * y * w * v.z - 2 * z * w * v.y + x * x * v.x
-                + 2 * y * x * v.y + 2 * z * x * v.z - z * z * v.x - y * y * v.x;
-        tempY = 2 * x * y * v.x + y * y * v.y + 2 * z * y * v.z + 2 * w * z
-                * v.x - z * z * v.y + w * w * v.y - 2 * x * w * v.z - x * x
-                * v.y;
-        v.z = 2 * x * z * v.x + 2 * y * z * v.y + z * z * v.z - 2 * w * y * v.x
-                - y * y * v.z + 2 * w * x * v.y - x * x * v.z + w * w * v.z;
+        tempX = this.multLocalX(v);
+        tempY = this.multLocalY(v);
+        v.z = this.multLocalZ(v);
         v.x = tempX;
         v.y = tempY;
         return v;
+    }
+
+    public final float multLocalX(final Vector3f v)
+    {
+    	return w * w * v.x + 2 * y * w * v.z - 2 * z * w * v.y + x * x * v.x +
+    		   2 * y * x * v.y + 2 * z * x * v.z - z * z * v.x - y * y * v.x;
+    }
+
+    public final float multLocalY(final Vector3f v)
+    {
+    	return 2 * x * y * v.x + y * y * v.y + 2 * z * y * v.z + 2 * w * z *
+    		   v.x - z * z * v.y + w * w * v.y - 2 * x * w * v.z - x * x * v.y;
+    }
+
+    public final float multLocalZ(final Vector3f v)
+    {
+    	return 2 * x * z * v.x + 2 * y * z * v.y + z * z * v.z - 2 * w * y *
+    		   v.x - y * y * v.z + 2 * w * x * v.y - x * x * v.z + w * w * v.z;
     }
 
     /**
