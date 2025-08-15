@@ -31,10 +31,14 @@
  */
 package com.jme3.math;
 
-import com.jme3.export.*;
-import com.jme3.util.TempVars;
-
 import java.io.IOException;
+
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
+import com.jme3.util.TempVars;
 
 /**
  * A 3-D coordinate transform composed of translation, rotation, and scaling.
@@ -292,6 +296,39 @@ public final class Transform implements Savable, Cloneable, java.io.Serializable
     public Transform setTranslation(float x, float y, float z) {
         assert Float.isFinite(x) && Float.isFinite(y) && Float.isFinite(z) : "Invalid translation " + x + ", " + y + ", " + z;
         translation.set(x, y, z);
+        return this;
+    }    
+    
+    /**
+     * Sets this matrix's x translation to the given value,
+     * retaining the original y and z values.
+     * @param x This matrix's new x translation.
+     * @return this
+     */
+    public Transform setTranslationX(float x) {
+        translation.setX(x);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's y translation to the given value,
+     * retaining the original x and z values.
+     * @param y This matrix's new y translation.
+     * @return this
+     */
+    public Transform setTranslationY(float y) {
+        translation.setY(y);
+        return this;
+    }
+
+    /**
+     * Sets this matrix's z translation to the given value,
+     * retaining the original x and y values.
+     * @param z This matrix's new z translation.
+     * @return this
+     */
+    public Transform setTranslationZ(float z) {
+        translation.setZ(z);
         return this;
     }
 
